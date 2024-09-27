@@ -1,0 +1,614 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		28219FD12C7D1E6C00C1A624 /* AutoCaptionerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28219FD02C7D1E6C00C1A624 /* AutoCaptionerView.swift */; };
+		28DFFA1E2C7C92EC0030CDA1 /* tagmeisterApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28DFFA1D2C7C92EC0030CDA1 /* tagmeisterApp.swift */; };
+		28DFFA202C7C92EC0030CDA1 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28DFFA1F2C7C92EC0030CDA1 /* ContentView.swift */; };
+		28DFFA222C7C92ED0030CDA1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28DFFA212C7C92ED0030CDA1 /* Assets.xcassets */; };
+		28DFFA252C7C92ED0030CDA1 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28DFFA242C7C92ED0030CDA1 /* Preview Assets.xcassets */; };
+		28DFFA302C7C92ED0030CDA1 /* tagmeisterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28DFFA2F2C7C92ED0030CDA1 /* tagmeisterTests.swift */; };
+		28DFFA3A2C7C92ED0030CDA1 /* tagmeisterUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28DFFA392C7C92ED0030CDA1 /* tagmeisterUITests.swift */; };
+		28DFFA3C2C7C92ED0030CDA1 /* tagmeisterUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28DFFA3B2C7C92ED0030CDA1 /* tagmeisterUITestsLaunchTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		28DFFA2C2C7C92ED0030CDA1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 28DFFA122C7C92EB0030CDA1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 28DFFA192C7C92EB0030CDA1;
+			remoteInfo = tagmeister;
+		};
+		28DFFA362C7C92ED0030CDA1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 28DFFA122C7C92EB0030CDA1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 28DFFA192C7C92EB0030CDA1;
+			remoteInfo = tagmeister;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		28219FD02C7D1E6C00C1A624 /* AutoCaptionerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutoCaptionerView.swift; sourceTree = "<group>"; };
+		28AA5D932C7C9E6E00F7FDBA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		28DFFA1A2C7C92EC0030CDA1 /* tagmeister.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tagmeister.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		28DFFA1D2C7C92EC0030CDA1 /* tagmeisterApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = tagmeisterApp.swift; sourceTree = "<group>"; };
+		28DFFA1F2C7C92EC0030CDA1 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		28DFFA212C7C92ED0030CDA1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		28DFFA242C7C92ED0030CDA1 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		28DFFA262C7C92ED0030CDA1 /* tagmeister.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = tagmeister.entitlements; sourceTree = "<group>"; };
+		28DFFA2B2C7C92ED0030CDA1 /* tagmeisterTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = tagmeisterTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		28DFFA2F2C7C92ED0030CDA1 /* tagmeisterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = tagmeisterTests.swift; sourceTree = "<group>"; };
+		28DFFA352C7C92ED0030CDA1 /* tagmeisterUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = tagmeisterUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		28DFFA392C7C92ED0030CDA1 /* tagmeisterUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = tagmeisterUITests.swift; sourceTree = "<group>"; };
+		28DFFA3B2C7C92ED0030CDA1 /* tagmeisterUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = tagmeisterUITestsLaunchTests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		28DFFA172C7C92EB0030CDA1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		28DFFA282C7C92ED0030CDA1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		28DFFA322C7C92ED0030CDA1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		28DFFA112C7C92EB0030CDA1 = {
+			isa = PBXGroup;
+			children = (
+				28DFFA1C2C7C92EC0030CDA1 /* tagmeister */,
+				28DFFA2E2C7C92ED0030CDA1 /* tagmeisterTests */,
+				28DFFA382C7C92ED0030CDA1 /* tagmeisterUITests */,
+				28DFFA1B2C7C92EC0030CDA1 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		28DFFA1B2C7C92EC0030CDA1 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				28DFFA1A2C7C92EC0030CDA1 /* tagmeister.app */,
+				28DFFA2B2C7C92ED0030CDA1 /* tagmeisterTests.xctest */,
+				28DFFA352C7C92ED0030CDA1 /* tagmeisterUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		28DFFA1C2C7C92EC0030CDA1 /* tagmeister */ = {
+			isa = PBXGroup;
+			children = (
+				28AA5D932C7C9E6E00F7FDBA /* Info.plist */,
+				28DFFA1D2C7C92EC0030CDA1 /* tagmeisterApp.swift */,
+				28DFFA1F2C7C92EC0030CDA1 /* ContentView.swift */,
+				28DFFA212C7C92ED0030CDA1 /* Assets.xcassets */,
+				28DFFA262C7C92ED0030CDA1 /* tagmeister.entitlements */,
+				28DFFA232C7C92ED0030CDA1 /* Preview Content */,
+				28219FD02C7D1E6C00C1A624 /* AutoCaptionerView.swift */,
+			);
+			path = tagmeister;
+			sourceTree = "<group>";
+		};
+		28DFFA232C7C92ED0030CDA1 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				28DFFA242C7C92ED0030CDA1 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		28DFFA2E2C7C92ED0030CDA1 /* tagmeisterTests */ = {
+			isa = PBXGroup;
+			children = (
+				28DFFA2F2C7C92ED0030CDA1 /* tagmeisterTests.swift */,
+			);
+			path = tagmeisterTests;
+			sourceTree = "<group>";
+		};
+		28DFFA382C7C92ED0030CDA1 /* tagmeisterUITests */ = {
+			isa = PBXGroup;
+			children = (
+				28DFFA392C7C92ED0030CDA1 /* tagmeisterUITests.swift */,
+				28DFFA3B2C7C92ED0030CDA1 /* tagmeisterUITestsLaunchTests.swift */,
+			);
+			path = tagmeisterUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		28DFFA192C7C92EB0030CDA1 /* tagmeister */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 28DFFA3F2C7C92ED0030CDA1 /* Build configuration list for PBXNativeTarget "tagmeister" */;
+			buildPhases = (
+				28DFFA162C7C92EB0030CDA1 /* Sources */,
+				28DFFA172C7C92EB0030CDA1 /* Frameworks */,
+				28DFFA182C7C92EB0030CDA1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = tagmeister;
+			packageProductDependencies = (
+			);
+			productName = tagmeister;
+			productReference = 28DFFA1A2C7C92EC0030CDA1 /* tagmeister.app */;
+			productType = "com.apple.product-type.application";
+		};
+		28DFFA2A2C7C92ED0030CDA1 /* tagmeisterTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 28DFFA422C7C92ED0030CDA1 /* Build configuration list for PBXNativeTarget "tagmeisterTests" */;
+			buildPhases = (
+				28DFFA272C7C92ED0030CDA1 /* Sources */,
+				28DFFA282C7C92ED0030CDA1 /* Frameworks */,
+				28DFFA292C7C92ED0030CDA1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				28DFFA2D2C7C92ED0030CDA1 /* PBXTargetDependency */,
+			);
+			name = tagmeisterTests;
+			productName = tagmeisterTests;
+			productReference = 28DFFA2B2C7C92ED0030CDA1 /* tagmeisterTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		28DFFA342C7C92ED0030CDA1 /* tagmeisterUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 28DFFA452C7C92ED0030CDA1 /* Build configuration list for PBXNativeTarget "tagmeisterUITests" */;
+			buildPhases = (
+				28DFFA312C7C92ED0030CDA1 /* Sources */,
+				28DFFA322C7C92ED0030CDA1 /* Frameworks */,
+				28DFFA332C7C92ED0030CDA1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				28DFFA372C7C92ED0030CDA1 /* PBXTargetDependency */,
+			);
+			name = tagmeisterUITests;
+			productName = tagmeisterUITests;
+			productReference = 28DFFA352C7C92ED0030CDA1 /* tagmeisterUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		28DFFA122C7C92EB0030CDA1 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1540;
+				LastUpgradeCheck = 1540;
+				TargetAttributes = {
+					28DFFA192C7C92EB0030CDA1 = {
+						CreatedOnToolsVersion = 15.4;
+					};
+					28DFFA2A2C7C92ED0030CDA1 = {
+						CreatedOnToolsVersion = 15.4;
+						TestTargetID = 28DFFA192C7C92EB0030CDA1;
+					};
+					28DFFA342C7C92ED0030CDA1 = {
+						CreatedOnToolsVersion = 15.4;
+						TestTargetID = 28DFFA192C7C92EB0030CDA1;
+					};
+				};
+			};
+			buildConfigurationList = 28DFFA152C7C92EB0030CDA1 /* Build configuration list for PBXProject "tagmeister" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 28DFFA112C7C92EB0030CDA1;
+			packageReferences = (
+			);
+			productRefGroup = 28DFFA1B2C7C92EC0030CDA1 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				28DFFA192C7C92EB0030CDA1 /* tagmeister */,
+				28DFFA2A2C7C92ED0030CDA1 /* tagmeisterTests */,
+				28DFFA342C7C92ED0030CDA1 /* tagmeisterUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		28DFFA182C7C92EB0030CDA1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				28DFFA252C7C92ED0030CDA1 /* Preview Assets.xcassets in Resources */,
+				28DFFA222C7C92ED0030CDA1 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		28DFFA292C7C92ED0030CDA1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		28DFFA332C7C92ED0030CDA1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		28DFFA162C7C92EB0030CDA1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				28DFFA202C7C92EC0030CDA1 /* ContentView.swift in Sources */,
+				28DFFA1E2C7C92EC0030CDA1 /* tagmeisterApp.swift in Sources */,
+				28219FD12C7D1E6C00C1A624 /* AutoCaptionerView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		28DFFA272C7C92ED0030CDA1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				28DFFA302C7C92ED0030CDA1 /* tagmeisterTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		28DFFA312C7C92ED0030CDA1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				28DFFA3A2C7C92ED0030CDA1 /* tagmeisterUITests.swift in Sources */,
+				28DFFA3C2C7C92ED0030CDA1 /* tagmeisterUITestsLaunchTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		28DFFA2D2C7C92ED0030CDA1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 28DFFA192C7C92EB0030CDA1 /* tagmeister */;
+			targetProxy = 28DFFA2C2C7C92ED0030CDA1 /* PBXContainerItemProxy */;
+		};
+		28DFFA372C7C92ED0030CDA1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 28DFFA192C7C92EB0030CDA1 /* tagmeister */;
+			targetProxy = 28DFFA362C7C92ED0030CDA1 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		28DFFA3D2C7C92ED0030CDA1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.5;
+				MERGED_BINARY_TYPE = automatic;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PYTHONHOME = "/opt/homebrew/Cellar/python@3.12/3.12.5/Frameworks/Python.framework/Versions/3.12";
+				PYTHON_LIBRARY = "/opt/homebrew/Cellar/python@3.12/3.12.5/Frameworks/Python.framework/Versions/3.12/lib/libpython3.12.dylib";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		28DFFA3E2C7C92ED0030CDA1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.5;
+				MERGED_BINARY_TYPE = automatic;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PYTHONHOME = "/opt/homebrew/Cellar/python@3.12/3.12.5/Frameworks/Python.framework/Versions/3.12";
+				PYTHON_LIBRARY = "/opt/homebrew/Cellar/python@3.12/3.12.5/Frameworks/Python.framework/Versions/3.12/lib/libpython3.12.dylib";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		28DFFA402C7C92ED0030CDA1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = tagmeister/tagmeister.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"tagmeister/Preview Content\"";
+				DEVELOPMENT_TEAM = 7TV795SF98;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = tagmeister/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = tagmeister;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = omershatz.tagmeister;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		28DFFA412C7C92ED0030CDA1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = tagmeister/tagmeister.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_ASSET_PATHS = "\"tagmeister/Preview Content\"";
+				DEVELOPMENT_TEAM = 7TV795SF98;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = tagmeister/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = tagmeister;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 0.0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = omershatz.tagmeister;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		28DFFA432C7C92ED0030CDA1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7TV795SF98;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = omershatz.tagmeisterTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/tagmeister.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/tagmeister";
+			};
+			name = Debug;
+		};
+		28DFFA442C7C92ED0030CDA1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7TV795SF98;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.5;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = omershatz.tagmeisterTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/tagmeister.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/tagmeister";
+			};
+			name = Release;
+		};
+		28DFFA462C7C92ED0030CDA1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7TV795SF98;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = omershatz.tagmeisterUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = tagmeister;
+			};
+			name = Debug;
+		};
+		28DFFA472C7C92ED0030CDA1 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7TV795SF98;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = omershatz.tagmeisterUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = tagmeister;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		28DFFA152C7C92EB0030CDA1 /* Build configuration list for PBXProject "tagmeister" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				28DFFA3D2C7C92ED0030CDA1 /* Debug */,
+				28DFFA3E2C7C92ED0030CDA1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		28DFFA3F2C7C92ED0030CDA1 /* Build configuration list for PBXNativeTarget "tagmeister" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				28DFFA402C7C92ED0030CDA1 /* Debug */,
+				28DFFA412C7C92ED0030CDA1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		28DFFA422C7C92ED0030CDA1 /* Build configuration list for PBXNativeTarget "tagmeisterTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				28DFFA432C7C92ED0030CDA1 /* Debug */,
+				28DFFA442C7C92ED0030CDA1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		28DFFA452C7C92ED0030CDA1 /* Build configuration list for PBXNativeTarget "tagmeisterUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				28DFFA462C7C92ED0030CDA1 /* Debug */,
+				28DFFA472C7C92ED0030CDA1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 28DFFA122C7C92EB0030CDA1 /* Project object */;
+}
