@@ -1,6 +1,6 @@
-# Tagmeister
+# tagmeister
 
-Tagmeister is a macOS application designed for efficient image captioning, primarily aimed at dataset preparation for machine learning projects.
+tagmeister is a macOS application designed for efficient image captioning, primarily aimed at dataset preparation for machine learning projects.
 
 ## Features
 
@@ -21,6 +21,16 @@ Tagmeister is a macOS application designed for efficient image captioning, prima
 
 ## Installation
 
+### Option 1: Download and Install DMG
+
+1. Go to the [Releases](https://github.com/oshtz/tagmeister/releases) page of the tagmeister repository.
+2. Download the latest `tagmeister.Installer.dmg` file.
+3. Open the downloaded DMG file.
+4. Drag the tagmeister app to your Applications folder.
+5. Eject the DMG and launch tagmeister from your Applications folder.
+
+### Option 2: Build from Source
+
 1. Clone the repository:
    ```
    git clone https://github.com/oshtz/tagmeister.git
@@ -34,7 +44,7 @@ Tagmeister is a macOS application designed for efficient image captioning, prima
 
 ## Usage
 
-1. Launch Tagmeister.
+1. Launch tagmeister.
 2. Click "Select Directory" to choose a folder containing your dataset images.
 3. Browse through your images using the left sidebar.
 4. Use the right sidebar to generate captions and edit them as needed.
@@ -66,4 +76,4 @@ Key components of the project:
 
 ## Contributing
 
-Contributions to Tagmeister are welcome! Please feel free to submit a Pull Request.
+Contributions to tagmeister are welcome! Please feel free to submit a Pull Request.
