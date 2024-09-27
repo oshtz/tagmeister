@@ -46,14 +46,7 @@ Tagmeister is a macOS application designed for efficient image captioning, prima
 
 ### API Key
 
-To use the AI-powered caption generation feature, provide your OpenAI API key:
-
-1. Open the settings panel in the application.
-2. Enter your API key in the designated field.
-
-### Supported Models
-
-Tagmeister supports various OpenAI models for caption generation. Select your preferred model from the dropdown menu in the settings panel.
+To use the AI-powered caption generation feature enter your API key in the designated field.
 
 ## Development
 
