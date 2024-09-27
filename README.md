@@ -47,16 +47,14 @@ tagmeister is a macOS application designed for efficient image captioning, prima
 1. Launch tagmeister.
 2. Click "Select Directory" to choose a folder containing your dataset images.
 3. Browse through your images using the left sidebar.
-4. Use the right sidebar to generate captions and edit them as needed.
-5. Customize caption generation settings in the settings panel.
-6. Use batch processing for efficient captioning of multiple images.
-7. Export your captions in the desired format for your ML project.
+4. Customize caption generation settings in the settings panel.
+5. Use batch processing for efficient captioning of multiple images.
 
 ## Configuration
 
 ### API Key
 
-To use the AI-powered caption generation feature enter your API key in the designated field.
+To use tagmeister, enter your API key in the designated field.
 
 ## Development
 
@@ -71,8 +69,7 @@ Key components of the project:
 
 1. Ensure you have Xcode 15.4 or later installed.
 2. Open the project in Xcode.
-3. Select your target device or simulator.
-4. Click the "Run" button or press `Cmd + R` to build and run the project.
+3. Click the "Run" button or press `Cmd + R` to build and run the project.
 
 ## Contributing
 
