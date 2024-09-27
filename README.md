@@ -1,5 +1,7 @@
 # tagmeister
 
+<img src="https://github.com/oshtz/tagmeister-osx/blob/main/tagmeister/Assets.xcassets/AppIcon.appiconset/AppIcon256%201.png?raw=true" alt="tagmeister logo" width="128"/>
+
 tagmeister is a macOS application designed for efficient image captioning, primarily aimed at dataset preparation for machine learning projects.
 
 ## Features
