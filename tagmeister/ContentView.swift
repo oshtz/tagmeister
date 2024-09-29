@@ -367,16 +367,6 @@ struct ContentView: View {
     private func processCaption(_ caption: String) -> String {
         var processedCaption = caption.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // Remove "The image features/depicts/shows..." text more aggressively
-        let prefixesToRemove = ["The image features", "The image depicts", "The image shows", "This image depicts", "This image shows", "This image features", "The image appears to be ", "This image appears to be "]
-        for prefix in prefixesToRemove {
-            if processedCaption.lowercased().hasPrefix(prefix.lowercased()) {
-                let index = processedCaption.index(processedCaption.startIndex, offsetBy: prefix.count)
-                processedCaption = String(processedCaption[index...]).trimmingCharacters(in: .whitespaces)
-                break
-            }
-        }
-
         // Replace periods with commas, except for the last one
         let components = processedCaption.components(separatedBy: ".")
         processedCaption = components.enumerated().map { index, component in
