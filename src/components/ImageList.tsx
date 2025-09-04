@@ -11,15 +11,57 @@ import {
   Box, 
   Paper,
   Button,
-  IconButton
+  IconButton,
+  LinearProgress,
+  CircularProgress
 } from '@mui/material';
 import Tooltip from '@mui/material/Tooltip';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import SelectAllIcon from '@mui/icons-material/SelectAll';
 import { invoke } from '@tauri-apps/api/core';
 
+// LRU cache for thumbnails with size limit
+class ThumbnailCache {
+  private cache = new Map<string, string>();
+  private maxSize = 500; // Maximum number of cached thumbnails
+  
+  get(key: string): string | undefined {
+    const value = this.cache.get(key);
+    if (value) {
+      // Move to end (most recently used)
+      this.cache.delete(key);
+      this.cache.set(key, value);
+    }
+    return value;
+  }
+  
+  set(key: string, value: string): void {
+    // Remove if already exists
+    if (this.cache.has(key)) {
+      this.cache.delete(key);
+    }
+    // Add to end
+    this.cache.set(key, value);
+    
+    // Evict oldest if over limit
+    if (this.cache.size > this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey) {
+        this.cache.delete(firstKey);
+        console.log(`Evicted thumbnail from cache: ${firstKey}`);
+      }
+    }
+  }
+  
+  size(): number {
+    return this.cache.size;
+  }
+}
+
+const thumbnailCache = new ThumbnailCache();
+
 const ImageList: React.FC = () => {
-  const { 
+  const {
     currentDirectory,
     selectedImages,
     selectedImage,
@@ -30,56 +72,101 @@ const ImageList: React.FC = () => {
     isProcessing,
     processedCount,
     totalToProcess,
-    selectDirectory
+    selectDirectory,
+    isLoadingImages
   } = useAppStore();
   
   const listRef = useRef<HTMLUListElement>(null);
   const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
   const [loadingThumbnails, setLoadingThumbnails] = useState<boolean>(false);
   
-  // Load thumbnails for all images
+  // Load thumbnails for all images with parallel processing and caching
   useEffect(() => {
     if (imageFiles.length === 0) return;
     
-    setLoadingThumbnails(true);
-    const newImageUrls: Record<string, string> = {};
-    let loadedCount = 0;
+    console.log('Starting to load thumbnails for', imageFiles.length, 'images');
     
-    // Load thumbnails one by one to avoid overwhelming the system
-    const loadThumbnail = async (index: number) => {
-      if (index >= imageFiles.length) {
-        setLoadingThumbnails(false);
-        return;
+    // Check cache first
+    const cachedUrls: Record<string, string> = {};
+    const filesToLoad: typeof imageFiles = [];
+    
+    imageFiles.forEach(file => {
+      const cached = thumbnailCache.get(file.path);
+      if (cached) {
+        cachedUrls[file.path] = cached;
+      } else {
+        filesToLoad.push(file);
+      }
+    });
+    
+    // Set cached thumbnails immediately
+    if (Object.keys(cachedUrls).length > 0) {
+      console.log(`Found ${Object.keys(cachedUrls).length} cached thumbnails`);
+      setImageUrls(cachedUrls);
+    }
+    
+    // If all thumbnails are cached, we're done
+    if (filesToLoad.length === 0) {
+      console.log('All thumbnails were cached');
+      setLoadingThumbnails(false);
+      return;
+    }
+    
+    console.log(`Need to load ${filesToLoad.length} new thumbnails`);
+    setLoadingThumbnails(true);
+    
+    // Load thumbnails in parallel batches for better performance
+    const loadThumbnailsBatch = async () => {
+      const batchSize = 10; // Process 10 images concurrently for maximum speed
+      const newImageUrls: Record<string, string> = { ...cachedUrls };
+      
+      for (let i = 0; i < filesToLoad.length; i += batchSize) {
+        const batch = filesToLoad.slice(i, i + batchSize);
+        console.log(`Loading batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(filesToLoad.length / batchSize)} (${batch.length} images)`);
+        
+        // Process batch in parallel
+        const batchPromises = batch.map(async (file) => {
+          try {
+            // Use smaller thumbnail size (64px) and lower quality for faster loading
+            const base64 = await invoke<string>('read_thumbnail_as_base64', {
+              path: file.path,
+              maxSize: 64,
+              quality: 60
+            });
+            return { path: file.path, base64, success: true };
+          } catch (err) {
+            console.error(`Error loading thumbnail for ${file.name}:`, err);
+            return { path: file.path, base64: '', success: false };
+          }
+        });
+        
+        // Wait for batch to complete
+        const batchResults = await Promise.all(batchPromises);
+        
+        // Update URLs and cache for successful loads
+        batchResults.forEach(result => {
+          if (result.success && result.base64) {
+            const dataUrl = `data:image/jpeg;base64,${result.base64}`;
+            newImageUrls[result.path] = dataUrl;
+            // Cache the thumbnail with LRU eviction
+            thumbnailCache.set(result.path, dataUrl);
+          }
+        });
+        
+        // Update state after each batch for progressive loading
+        setImageUrls({ ...newImageUrls });
+        
+        // Small delay between batches to prevent overwhelming the system
+        if (i + batchSize < filesToLoad.length) {
+          await new Promise(resolve => setTimeout(resolve, 30));
+        }
       }
       
-      const file = imageFiles[index];
-      try {
-        // Use Rust function to load the image as base64
-        const base64 = await invoke<string>('read_image_as_base64', { path: file.path });
-        
-        // Determine the image type from the file extension
-        const ext = file.path.split('.').pop()?.toLowerCase() || 'png';
-        const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : 'image/png';
-        
-        // Create a data URL
-        newImageUrls[file.path] = `data:${mimeType};base64,${base64}`;
-        
-        // Update state every few images to show progress
-        loadedCount++;
-        if (loadedCount % 5 === 0 || index === imageFiles.length - 1) {
-          setImageUrls({...newImageUrls});
-        }
-        
-        // Load the next thumbnail
-        loadThumbnail(index + 1);
-      } catch (err) {
-        console.error('Error loading thumbnail:', err);
-        loadThumbnail(index + 1);
-      }
+      console.log(`Finished loading thumbnails. Successfully loaded: ${Object.keys(newImageUrls).length}/${imageFiles.length}. Cache size: ${thumbnailCache.size()}`);
+      setLoadingThumbnails(false);
     };
     
-    // Start loading thumbnails
-    loadThumbnail(0);
+    loadThumbnailsBatch();
   }, [imageFiles]);
   
   // Handle keyboard shortcuts
@@ -245,6 +332,8 @@ const ImageList: React.FC = () => {
     );
   };
   
+  const isBlocking = isLoadingImages || loadingThumbnails;
+
   return (
     <Box 
       sx={{ 
@@ -253,7 +342,14 @@ const ImageList: React.FC = () => {
         flexDirection: 'column',
         position: 'relative'
       }}
+      aria-busy={isBlocking}
     >
+      {(isLoadingImages || loadingThumbnails) && (
+        <LinearProgress 
+          color="primary"
+          sx={{ position: 'sticky', top: 0, left: 0, right: 0, zIndex: 3, borderRadius: 0 }}
+        />
+      )}
       {/* Header with squircle buttons */}
       <Box 
         sx={{ 
@@ -358,6 +454,27 @@ const ImageList: React.FC = () => {
       )}
       
       {/* Processing overlay removed - now handled by App.tsx */}
+
+      {/* Interaction-blocking overlay while loading */}
+      {isBlocking && (
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 4,
+            bgcolor: theme => theme.palette.mode === 'dark' 
+              ? 'rgba(0,0,0,0.35)'
+              : 'rgba(255,255,255,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'auto',
+            cursor: 'wait'
+          }}
+        >
+          <CircularProgress size={24} />
+        </Box>
+      )}
     </Box>
   );
 };

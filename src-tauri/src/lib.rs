@@ -177,6 +177,9 @@ fn save_captions(captions: HashMap<String, String>) -> Result<usize, String> {
 
 use image::io::Reader as ImageReader;
 use image::GenericImageView;
+use image::imageops::FilterType;
+use image::ImageOutputFormat;
+use std::io::Cursor;
 
 
 // Read an image file and return its contents as a base64-encoded string, with validation
@@ -319,6 +322,55 @@ fn read_image_as_base64_with_type(path: &str) -> Result<String, String> {
     });
 
     Ok(result.to_string())
+}
+
+// Generate a JPEG thumbnail as base64 for fast UI previews
+#[tauri::command]
+fn read_thumbnail_as_base64(path: &str, max_size: u32, quality: u8) -> Result<String, String> {
+    let path = Path::new(path);
+
+    if !path.exists() {
+        return Err(format!("File not found: {}", path.display()));
+    }
+
+    // Open and decode
+    let img = ImageReader::open(path)
+        .and_then(|r| r.with_guessed_format())
+        .map_err(|e| format!("Failed to open or guess image format: {}", e))?
+        .decode()
+        .map_err(|e| format!("Failed to decode image: {}", e))?;
+
+    let (w, h) = img.dimensions();
+    let max_size = if max_size == 0 { 128 } else { max_size };
+    let quality = if quality == 0 { 75 } else { quality.min(95) };
+
+    // Compute new size preserving aspect ratio
+    let (new_w, new_h) = if w <= max_size && h <= max_size {
+        (w, h)
+    } else {
+        let scale = (max_size as f32 / w as f32).min(max_size as f32 / h as f32);
+        let nw = (w as f32 * scale).round().max(1.0) as u32;
+        let nh = (h as f32 * scale).round().max(1.0) as u32;
+        (nw, nh)
+    };
+
+    let resized = if new_w == w && new_h == h {
+        img
+    } else {
+        img.resize(new_w, new_h, FilterType::Triangle)
+    };
+
+    // Encode as JPEG into memory
+    let mut buffer: Vec<u8> = Vec::new();
+    {
+        let mut cursor = Cursor::new(&mut buffer);
+        resized
+            .write_to(&mut cursor, ImageOutputFormat::Jpeg(quality))
+            .map_err(|e| format!("Failed to encode thumbnail: {}", e))?;
+    }
+
+    let base64_string = general_purpose::STANDARD.encode(&buffer);
+    Ok(base64_string)
 }
 
 // Create directory in AppData with elevated permissions
@@ -571,6 +623,7 @@ pub fn run() {
             select_directory_fallback,
             read_image_as_base64,
             read_image_as_base64_with_type,
+            read_thumbnail_as_base64,
             create_app_data_dir,
             proxy_ollama_request,
             proxy_anthropic_request

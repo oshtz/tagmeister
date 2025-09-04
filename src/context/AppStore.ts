@@ -57,6 +57,8 @@ interface AppState {
   processedCount: number;
   totalToProcess: number;
   shouldInterrupt: boolean;
+  // UI state
+  isLoadingImages: boolean;
   
   // Actions
   toggleApiKeyVisibility: () => void;
@@ -137,6 +139,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   processedCount: 0,
   totalToProcess: 0,
   shouldInterrupt: false,
+  isLoadingImages: false,
   
   // Actions
   toggleApiKeyVisibility: () => set(state => ({ apiKeyVisible: !state.apiKeyVisible })),
@@ -582,7 +585,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   loadImagesFromDirectory: async () => {
     const { currentDirectory } = get();
     if (!currentDirectory) return;
-    
+    set({ isLoadingImages: true });
     try {
       // Clear existing captions
       set({ captions: {} });
@@ -600,7 +603,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       
       console.log('Directory contents:', result);
       
-      // Filter for image files
+      // Filter for image files and sort them naturally
       const imageFiles: FileInfo[] = result.files
         .filter(file => !file.is_dir)
         .filter(file => {
@@ -610,7 +613,14 @@ export const useAppStore = create<AppState>((set, get) => ({
         .map(file => ({
           path: file.path,
           name: file.name
-        }));
+        }))
+        .sort((a, b) => {
+          // Natural sort that handles numbers correctly
+          return a.name.localeCompare(b.name, undefined, {
+            numeric: true,
+            sensitivity: 'base'
+          });
+        });
       
       // Load captions for all images
       const newCaptions: Caption = {};
@@ -649,6 +659,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     } catch (error) {
       console.error('Error loading images from directory:', error);
+    } finally {
+      set({ isLoadingImages: false });
     }
   }
 }));
