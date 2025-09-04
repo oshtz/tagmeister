@@ -41,7 +41,7 @@ function App() {
     currentDirectory
   } = useAppStore();
   
-  // Handle stopping the caption generation process
+  // Handle stopping the caption generation process (no immediate refresh)
   const handleStopProcessing = () => {
     useAppStore.getState().setShouldInterrupt(true);
   };

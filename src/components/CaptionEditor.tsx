@@ -283,14 +283,36 @@ const CaptionEditor: React.FC = () => {
   const processSingleImage = async (
     imagePath: string
   ): Promise<string> => {
-    // Clear the caption before starting
+    // Prepare prefix but do not apply it yet; only set it right before streaming
+    let livePrefix = '';
+    {
+      let prefix = prefixText.trim();
+      if (prefix) {
+        if (prefix.endsWith(', ') || prefix.endsWith(' ,')) {
+          prefix = prefix.substring(0, prefix.length - 2).trim();
+        } else if (prefix.endsWith(',')) {
+          prefix = prefix.substring(0, prefix.length - 1).trim();
+        }
+        livePrefix = prefix + ', ';
+      }
+    }
+    // Clear the caption immediately when starting processing
     setCaption('');
     updateCaption(imagePath, '');
     
     // Create a streaming handler for real-time updates
+    // Insert the prefix exactly when the first chunk arrives
+    let streamingStarted = false;
     const streamHandler = (chunk: string) => {
       setCaption(prev => {
-        const newCaption = prev + chunk;
+        let base = prev;
+        if (!streamingStarted) {
+          streamingStarted = true;
+          if (livePrefix) {
+            base = livePrefix; // seed prefix at the precise start of streaming
+          }
+        }
+        const newCaption = base + chunk;
         // Also update the caption in the store
         updateCaption(imagePath, newCaption);
         return newCaption;
@@ -378,27 +400,15 @@ const CaptionEditor: React.FC = () => {
       processedCaption = processedCaption.substring(0, processedCaption.length - 1).trim();
     }
 
-    // Build final caption with prefix and suffix
+    // Build final caption with the same prefix used for streaming and optional suffix
     let finalCaption = '';
-
-    // Handle prefix
-    let prefix = prefixText.trim();
-    if (prefix) {
-      // Remove trailing comma and space if present
-      if (prefix.endsWith(', ') || prefix.endsWith(' ,')) {
-        prefix = prefix.substring(0, prefix.length - 2).trim();
-      } else if (prefix.endsWith(',')) {
-        prefix = prefix.substring(0, prefix.length - 1).trim();
-      }
-      finalCaption = prefix + ', ' + processedCaption;
-    } else {
-      finalCaption = processedCaption;
-    }
-
+    // Remove any accidental leading commas/spaces from processed content
+    let processed = processedCaption.replace(/^\s*,+\s*/, '').trim();
+    // Start with the prefix we already seeded during streaming
+    finalCaption = livePrefix + processed;
     // Handle suffix
     let suffix = suffixText.trim();
     if (suffix) {
-      // Remove leading comma and space if present
       if (suffix.startsWith(', ') || suffix.startsWith(' ,')) {
         suffix = suffix.substring(2).trim();
       } else if (suffix.startsWith(',')) {
@@ -473,6 +483,12 @@ const CaptionEditor: React.FC = () => {
         try {
           await processSingleImage(imagePath);
           processedImages.push(imagePath);
+          // Refresh list/captions between each image in batch to update left panel
+          try {
+            await useAppStore.getState().loadImagesFromDirectory();
+          } catch (e) {
+            console.error('Failed to refresh images between batch items:', e);
+          }
         } catch (error) {
           console.error(`Error generating caption for ${imagePath}:`, error);
           throw error;
@@ -513,6 +529,13 @@ const CaptionEditor: React.FC = () => {
       setIsGenerating(false);
       setProcessingState(false);
       setShouldInterrupt(false);
+      // Refresh the image list and captions from disk so the left panel shows
+      // the latest saved captions after finishing or interruption.
+      try {
+        await useAppStore.getState().loadImagesFromDirectory();
+      } catch (e) {
+        console.error('Failed to refresh images after processing:', e);
+      }
     }
   };
 
