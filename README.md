@@ -1,7 +1,7 @@
 # tagmeister <img src="https://github.com/oshtz/tagmeister-osx/blob/main/tagmeister/Assets.xcassets/AppIcon.appiconset/AppIcon256%201.png?raw=true" alt="tagmeister logo" width="128" align="right"/>
 
-A Windows desktop application for efficient image captioning using OpenAI, Anthropic, or local models via Ollama and LM Studio.  
-tagmeister helps you organize and caption your datasets with ease.
+A cross-platform desktop application for efficient image captioning using OpenAI, Anthropic, or local models via Ollama and LM Studio.
+tagmeister helps you organize and caption your datasets with ease on Windows and macOS.
 
 ---
 
@@ -23,19 +23,23 @@ tagmeister helps you organize and caption your datasets with ease.
 
 ## Requirements
 
-- Windows 10 or later
+- **Windows:** Windows 10 or later
+- **macOS:** macOS 10.15 or later
 - For cloud captioning: OpenAI or Anthropic API key
 - For local captioning: [Ollama](https://ollama.com/) and/or [LM Studio](https://lmstudio.ai/) installed (if using local models)
-- **CORS must be enabled on your LM Studio server and Ollama for local models to work.**  
+- **CORS must be enabled on your LM Studio server and Ollama for local models to work.**
   [How to enable CORS for Ollama](https://objectgraph.com/blog/ollama-cors/)
 
 ## Installation
 
-1. Download the latest release (`tagmeister-portable.exe`)
-2. Run the executable (no installation required)
+1. Download the latest release:
+   - **Windows:** Download the `.exe` file
+   - **macOS:** Download the `.dmg` file
+2. **Windows:** Run the executable (no installation required)
+   **macOS:** Open the DMG and drag tagmeister to your Applications folder
 3. Enter your API key(s) in the settings (OpenAI and/or Anthropic, if using cloud models)
-4. (Optional) Install Ollama or LM Studio for local model support  
-   **Important:** Make sure CORS is enabled on your LM Studio server and Ollama.  
+4. (Optional) Install Ollama or LM Studio for local model support
+   **Important:** Make sure CORS is enabled on your LM Studio server and Ollama.
    [How to enable CORS for Ollama](https://objectgraph.com/blog/ollama-cors/)
 5. Start captioning your images!
 
@@ -43,7 +47,7 @@ tagmeister helps you organize and caption your datasets with ease.
 
 ```bash
 # Clone the repository
-git clone https://github.com/oshtz/tagmeister-pc.git
+git clone https://github.com/oshtz/tagmeister.git
 
 # Navigate to the project directory
 cd tagmeister
@@ -57,10 +61,13 @@ npm run tauri dev
 
 ## Building
 
-To build a release version for Windows:
+To build a release version:
 
 ```bash
+# Build for your current platform
 npm run tauri build
+
+# The built application will be available in src-tauri/target/release/bundle/
 ```
 
 ## Usage
