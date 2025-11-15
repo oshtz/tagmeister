@@ -188,6 +188,10 @@ const SystemPromptManagerDialog: React.FC<SystemPromptManagerDialogProps> = ({ o
           height: { xs: '85vh', md: '75vh' },
           maxHeight: '90vh',
           width: '100%',
+          backgroundColor: theme =>
+            theme.palette.mode === 'dark'
+              ? theme.palette.background.default
+              : theme.palette.background.paper,
         },
       }}
     >
@@ -310,6 +314,30 @@ const SystemPromptManagerDialog: React.FC<SystemPromptManagerDialogProps> = ({ o
                         height: '100% !important',
                         overflowY: 'auto',
                         fontFamily: '"Inconsolata", monospace',
+                        '&::-webkit-scrollbar': {
+                          width: '8px',
+                          backgroundColor: 'transparent',
+                        },
+                        '&::-webkit-scrollbar-track': {
+                          backgroundColor: theme =>
+                            theme.palette.mode === 'dark'
+                              ? 'rgba(255, 255, 255, 0.05)'
+                              : 'rgba(0, 0, 0, 0.05)',
+                          borderRadius: '4px',
+                        },
+                        '&::-webkit-scrollbar-thumb': {
+                          backgroundColor: theme =>
+                            theme.palette.mode === 'dark'
+                              ? 'rgba(0, 150, 136, 0.7)'
+                              : 'rgba(0, 150, 136, 0.6)',
+                          borderRadius: '4px',
+                        },
+                        '&::-webkit-scrollbar-thumb:hover': {
+                          backgroundColor: theme =>
+                            theme.palette.mode === 'dark'
+                              ? 'rgba(0, 150, 136, 0.9)'
+                              : 'rgba(0, 150, 136, 0.8)',
+                        },
                       },
                     },
                   }}

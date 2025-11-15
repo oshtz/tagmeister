@@ -165,8 +165,6 @@ export const useAppStore = create<AppState>((set, get) => ({
   anthropicApiKeyVisible: false,
   openRouterApiKey: '',
   openRouterApiKeyVisible: false,
-  openRouterApiKey: '',
-  openRouterApiKeyVisible: false,
   geminiApiKey: '',
   geminiApiKeyVisible: false,
   prefixText: '',
