@@ -138,6 +138,8 @@ const FontSizePopover: React.FC<{
           onClick={handleClick}
           size="small"
           sx={{
+            width: '36px',
+            height: '36px',
             borderRadius: '12px',
             padding: '6px',
             backgroundColor: theme => theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
@@ -146,7 +148,7 @@ const FontSizePopover: React.FC<{
             }
           }}
         >
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, letterSpacing: 1 }}>Aa</Typography>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, letterSpacing: 1, fontSize: '16px', lineHeight: 1 }}>Aa</Typography>
         </IconButton>
       </Tooltip>
       <Popover
@@ -891,6 +893,8 @@ const CaptionEditor: React.FC = () => {
                 onClick={handleModelMenuOpen}
                 aria-label="Refresh available models"
                 sx={{
+                  width: '36px',
+                  height: '36px',
                   borderRadius: '12px',
                   padding: '6px',
                   backgroundColor: theme => theme.palette.mode === 'dark'
@@ -935,14 +939,21 @@ const CaptionEditor: React.FC = () => {
             </FormControl>
             <Tooltip title="Manage system prompts">
               <IconButton
-                color="primary"
                 size="small"
                 onClick={() => setPromptManagerOpen(true)}
                 sx={{
-                  border: theme => `1px solid ${theme.palette.divider}`,
-                  borderRadius: 1,
-                  height: '40px',
-                  width: '40px'
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '12px',
+                  padding: '6px',
+                  backgroundColor: theme => theme.palette.mode === 'dark'
+                    ? 'rgba(255,255,255,0.08)'
+                    : 'rgba(0,0,0,0.04)',
+                  '&:hover': {
+                    backgroundColor: theme => theme.palette.mode === 'dark'
+                      ? 'rgba(255,255,255,0.12)'
+                      : 'rgba(0,0,0,0.08)'
+                  }
                 }}
                 aria-label="Manage system prompts"
               >
