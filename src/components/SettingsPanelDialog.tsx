@@ -263,10 +263,14 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
           height: { xs: '85vh', md: '75vh' },
           maxHeight: '90vh',
           width: '100%',
-          backgroundColor: (theme) =>
+          backgroundColor: theme =>
             theme.palette.mode === 'dark'
               ? theme.palette.grey[900]
               : theme.palette.background.paper,
+          color: theme =>
+            theme.palette.mode === 'dark'
+              ? theme.palette.getContrastText(theme.palette.grey[900])
+              : theme.palette.text.primary,
         },
       }}
     >
@@ -277,6 +281,10 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
           py: 2,
           px: { xs: 1.5, md: 2 },
           overflowY: 'auto',
+          backgroundColor: theme =>
+            theme.palette.mode === 'dark'
+              ? theme.palette.grey[900]
+              : theme.palette.background.paper,
           '&::-webkit-scrollbar': {
             width: '8px',
             backgroundColor: 'transparent',
@@ -306,10 +314,10 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
         <Typography variant="subtitle1" sx={{ fontFamily: '"Karla", sans-serif', mb: 2 }}>
           Remote APIs
         </Typography>
-        {renderApiKeyField('OpenAI API Key', apiKey, setApiKey, apiKeyVisible, toggleApiKeyVisibility, 'Enter OpenAI API Key')}
-        {renderApiKeyField('Anthropic API Key', anthropicApiKey, setAnthropicApiKey, anthropicApiKeyVisible, toggleAnthropicApiKeyVisibility, 'Enter Anthropic API Key')}
-        {renderApiKeyField('OpenRouter API Key', openRouterApiKey, setOpenRouterApiKey, openRouterApiKeyVisible, toggleOpenRouterApiKeyVisibility, 'Enter OpenRouter API Key')}
-        {renderApiKeyField('Gemini API Key', geminiApiKey, setGeminiApiKey, geminiApiKeyVisible, toggleGeminiApiKeyVisibility, 'Enter Gemini API Key')}
+        {renderApiKeyField('OpenAI API Key', apiKey, setApiKey, apiKeyVisible, toggleApiKeyVisibility, 'Enter OpenAI API Key', 'openai')}
+        {renderApiKeyField('Anthropic API Key', anthropicApiKey, setAnthropicApiKey, anthropicApiKeyVisible, toggleAnthropicApiKeyVisibility, 'Enter Anthropic API Key', 'anthropic')}
+        {renderApiKeyField('OpenRouter API Key', openRouterApiKey, setOpenRouterApiKey, openRouterApiKeyVisible, toggleOpenRouterApiKeyVisibility, 'Enter OpenRouter API Key', 'openrouter')}
+        {renderApiKeyField('Gemini API Key', geminiApiKey, setGeminiApiKey, geminiApiKeyVisible, toggleGeminiApiKeyVisibility, 'Enter Gemini API Key', 'gemini')}
 
         <Divider sx={{ my: 3 }} />
 
@@ -326,7 +334,8 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
             available: lmStudioAvailable && lmStudioModels.length === 0,
             emptyMessage: 'No vision-capable models found on LM Studio.',
             missingMessage: !lmStudioAvailable ? 'LM Studio not available or not running at the specified URL.' : '',
-          }
+          },
+          'lmstudio'
         )}
         {renderServerField(
           'Ollama Server URL',
@@ -338,48 +347,9 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
             available: ollamaAvailable && ollamaModels.length === 0,
             emptyMessage: 'No vision-capable models found on Ollama.',
             missingMessage: !ollamaAvailable ? 'Ollama not available or not running at the specified URL.' : '',
-          }
+          },
+          'ollama'
         )}
-
-        <Divider sx={{ my: 3 }} />
-
-        <Typography variant="subtitle1" sx={{ fontFamily: '"Karla", sans-serif' }}>
-          Provider Visibility
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Toggle which providers appear in the model picker. Your pinned models remain available even if their provider is hidden.
-        </Typography>
-        <Grid container spacing={2}>
-          {providerToggleOptions.map(option => (
-            <Grid item xs={12} sm={6} key={option.id}>
-              <Box
-                sx={{
-                  border: theme => `1px solid ${theme.palette.divider}`,
-                  borderRadius: 1,
-                  p: 2,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 2,
-                }}
-              >
-                <Box sx={{ maxWidth: '70%' }}>
-                  <Typography variant="subtitle2" sx={{ fontFamily: '"Karla", sans-serif' }}>
-                    {option.label}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {option.description}
-                  </Typography>
-                </Box>
-                <Switch
-                  size="small"
-                  checked={enabledProviders[option.id]}
-                  onChange={(_, checked) => setProviderEnabled(option.id, checked)}
-                />
-              </Box>
-            </Grid>
-          ))}
-        </Grid>
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={onClose} variant="contained" color="primary">

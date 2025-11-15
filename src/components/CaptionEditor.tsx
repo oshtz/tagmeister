@@ -823,16 +823,21 @@ const CaptionEditor: React.FC = () => {
     >
       <Box sx={{ mb: 2 }}>
         <Button
-          variant="outlined"
+          variant="contained"
           startIcon={<SettingsIcon />}
           fullWidth
           onClick={() => setSettingsPanelOpen(true)}
           sx={{
-            justifyContent: 'flex-start',
+            justifyContent: 'center',
             borderRadius: 1,
             height: 48,
             fontFamily: '"Karla", sans-serif',
-            mb: 2
+            mb: 2,
+            bgcolor: theme => theme.palette.mode === 'dark' ? 'secondary.main' : 'primary.main',
+            color: 'white',
+            '&:hover': {
+              bgcolor: theme => theme.palette.mode === 'dark' ? 'secondary.dark' : 'primary.dark',
+            }
           }}
         >
           Settings
@@ -982,6 +987,17 @@ const CaptionEditor: React.FC = () => {
               />
             )}
             slotProps={{
+              popper: {
+                placement: 'bottom-end',
+                modifiers: [
+                  {
+                    name: 'offset',
+                    options: {
+                      offset: [0, 4],
+                    },
+                  },
+                ],
+              },
               paper: {
                 sx: {
                   minWidth: { xs: '100%', sm: 360 },
