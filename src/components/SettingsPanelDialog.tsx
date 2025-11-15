@@ -18,7 +18,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import LinkIcon from '@mui/icons-material/Link';
 import { useAppStore, type ProviderId } from '../context/AppStore';
-import { open as openExternal } from '@tauri-apps/api/shell';
+import { open as openExternal } from '@tauri-apps/plugin-shell';
 
 interface SettingsPanelDialogProps {
   open: boolean;

@@ -23,7 +23,7 @@ import TitleBar from "./components/TitleBar";
 import AlertDialog from "./components/AlertDialog";
 import NoDirectoryOverlay from "./components/NoDirectoryOverlay";
 import "./App.css";
-import { open as openExternal } from '@tauri-apps/api/shell';
+import { open as openExternal } from '@tauri-apps/plugin-shell';
 
 function App() {
   const { 
