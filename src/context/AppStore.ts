@@ -2,9 +2,10 @@ import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
 import { open } from '@tauri-apps/plugin-dialog';
 import { readTextFile, writeTextFile, readDir, exists, create as createFs } from '@tauri-apps/plugin-fs';
-import { basename, extname, dirname, join, sep } from '@tauri-apps/api/path';
-import { appDataDir } from '@tauri-apps/api/path';
+import { basename, extname, dirname, join, sep, appDataDir } from '@tauri-apps/api/path';
+import { getVersion } from '@tauri-apps/api/app';
 import { DEFAULT_SYSTEM_PROMPTS, SystemPromptDefinition, getAllSystemPrompts, getSystemPromptByName } from '../utils/systemPrompts';
+import { fetchLatestRelease, compareVersions, selectPlatformDownloads, type PlatformDownloadLinks } from '../services/UpdateService';
 
 // Define a type for our file entries
 type FileInfo = {
@@ -15,6 +16,19 @@ type FileInfo = {
 type ProviderModel = {
   id: string;
   name: string;
+};
+
+type UpdateCheckOptions = {
+  silent?: boolean;
+};
+
+export type UpdateCheckResult = {
+  updateAvailable: boolean;
+  currentVersion: string | null;
+  latestVersion: string | null;
+  releaseUrl: string | null;
+  downloadUrls: PlatformDownloadLinks;
+  error?: string;
 };
 
 export type ProviderId = 'openai' | 'anthropic' | 'gemini' | 'openrouter' | 'lmstudio' | 'ollama';
@@ -123,6 +137,15 @@ interface AppState {
   shouldInterrupt: boolean;
   // UI state
   isLoadingImages: boolean;
+  // Update system
+  currentVersion: string | null;
+  latestVersion: string | null;
+  updateAvailable: boolean;
+  isCheckingForUpdates: boolean;
+  updateReleaseUrl: string | null;
+  updateDownloadUrls: PlatformDownloadLinks | null;
+  updateError: string | null;
+  lastUpdateCheck: string | null;
   
   // Actions
   toggleApiKeyVisibility: () => void;
@@ -177,6 +200,7 @@ interface AppState {
   loadSettings: () => Promise<void>;
   saveSettings: () => Promise<void>;
   loadImagesFromDirectory: () => Promise<void>;
+  checkForUpdates: (options?: UpdateCheckOptions) => Promise<UpdateCheckResult>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -229,6 +253,14 @@ export const useAppStore = create<AppState>((set, get) => ({
   totalToProcess: 0,
   shouldInterrupt: false,
   isLoadingImages: false,
+  currentVersion: null,
+  latestVersion: null,
+  updateAvailable: false,
+  isCheckingForUpdates: false,
+  updateReleaseUrl: null,
+  updateDownloadUrls: null,
+  updateError: null,
+  lastUpdateCheck: null,
   
   // Actions
   toggleApiKeyVisibility: () => set(state => ({ apiKeyVisible: !state.apiKeyVisible })),
@@ -1190,6 +1222,66 @@ export const useAppStore = create<AppState>((set, get) => ({
       }
     } catch (error) {
       console.error('Error saving settings:', error);
+    }
+  },
+
+  checkForUpdates: async (options: UpdateCheckOptions = {}) => {
+    const { silent = false } = options;
+    const timestamp = new Date().toISOString();
+    set({ isCheckingForUpdates: true, updateError: null });
+    try {
+      let currentVersion = get().currentVersion;
+      if (!currentVersion) {
+        try {
+          const detectedVersion = await getVersion();
+          if (detectedVersion) {
+            currentVersion = detectedVersion.trim();
+          }
+        } catch (versionError) {
+          console.error('Failed to read application version:', versionError);
+        }
+      }
+
+      const release = await fetchLatestRelease();
+      const downloadUrls = selectPlatformDownloads(release.assets);
+      const comparisonBase = currentVersion || '0.0.0';
+      const updateAvailable = compareVersions(comparisonBase, release.version) < 0;
+
+      set({
+        isCheckingForUpdates: false,
+        currentVersion: currentVersion || comparisonBase,
+        latestVersion: release.version,
+        updateAvailable,
+        updateReleaseUrl: release.releaseUrl,
+        updateDownloadUrls: downloadUrls,
+        lastUpdateCheck: timestamp,
+        updateError: null,
+      });
+
+      return {
+        updateAvailable,
+        currentVersion: currentVersion || comparisonBase,
+        latestVersion: release.version,
+        releaseUrl: release.releaseUrl,
+        downloadUrls,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to check for updates.';
+      console.error('Update check failed:', error);
+      set({
+        isCheckingForUpdates: false,
+        updateError: silent ? null : message,
+        lastUpdateCheck: timestamp,
+      });
+
+      return {
+        updateAvailable: false,
+        currentVersion: get().currentVersion,
+        latestVersion: get().latestVersion,
+        releaseUrl: null,
+        downloadUrls: {},
+        error: message,
+      };
     }
   },
   

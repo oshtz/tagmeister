@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAppStore } from "./context/AppStore";
 import { 
   Box, 
@@ -23,6 +23,7 @@ import TitleBar from "./components/TitleBar";
 import AlertDialog from "./components/AlertDialog";
 import NoDirectoryOverlay from "./components/NoDirectoryOverlay";
 import "./App.css";
+import { open as openExternal } from '@tauri-apps/api/shell';
 
 function App() {
   const { 
@@ -30,6 +31,7 @@ function App() {
     toggleTheme, 
     selectDirectory,
     initialize,
+    checkForUpdates,
     isProcessing,
     processedCount,
     totalToProcess,
@@ -40,6 +42,8 @@ function App() {
     directorySelectionError,
     currentDirectory
   } = useAppStore();
+
+  const [pendingUpdate, setPendingUpdate] = useState<{ latestVersion: string | null; releaseUrl: string | null } | null>(null);
   
   // Handle stopping the caption generation process (no immediate refresh)
   const handleStopProcessing = () => {
@@ -50,6 +54,33 @@ function App() {
   useEffect(() => {
     initialize();
   }, [initialize]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const result = await checkForUpdates({ silent: true });
+        if (result?.updateAvailable) {
+          setPendingUpdate({
+            latestVersion: result.latestVersion,
+            releaseUrl: result.releaseUrl,
+          });
+        }
+      } catch (error) {
+        console.error('Silent update check failed:', error);
+      }
+    })();
+  }, [checkForUpdates]);
+
+  const handleOpenUpdateRelease = async () => {
+    if (!pendingUpdate?.releaseUrl) {
+      return;
+    }
+    try {
+      await openExternal(pendingUpdate.releaseUrl);
+    } catch (error) {
+      console.error('Failed to open release URL:', error);
+    }
+  };
   
   // Create theme based on dark mode setting
   const theme = createTheme({
@@ -363,6 +394,16 @@ function App() {
         message={directorySelectionError || ""}
         type="error"
         onClose={() => useAppStore.setState({ directorySelectionError: null })}
+      />
+      <AlertDialog
+        open={!!pendingUpdate}
+        title="Update Available"
+        message={pendingUpdate?.latestVersion ? `Version ${pendingUpdate.latestVersion} is now available. Open the latest release to download the update?` : 'A new version is available.'}
+        type="confirm"
+        onClose={() => setPendingUpdate(null)}
+        onConfirm={handleOpenUpdateRelease}
+        confirmLabel="Open Release"
+        cancelLabel="Later"
       />
     </ThemeProvider>
   );

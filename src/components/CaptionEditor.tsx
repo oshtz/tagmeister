@@ -38,6 +38,8 @@ import { AnthropicService } from '../services/AnthropicService';
 import { LMStudioService } from '../services/LMStudioService';
 import { GeminiService } from '../services/GeminiService';
 import Popover from '@mui/material/Popover';
+import Popper from '@mui/material/Popper';
+import type { PopperProps } from '@mui/material/Popper';
 import Slider from '@mui/material/Slider';
 import Tooltip from '@mui/material/Tooltip';
 import AlertDialog from './AlertDialog';
@@ -62,6 +64,33 @@ const filterModelOptions = (
     option.label.toLowerCase().includes(search) || option.value.toLowerCase().includes(search)
   );
 };
+
+const ModelPickerPopper: React.FC<PopperProps> = (props) => (
+  <Popper
+    {...props}
+    placement="bottom-end"
+    modifiers={[
+      {
+        name: 'offset',
+        options: {
+          offset: ({ reference, popper }: any) => {
+            const widthDiff = (popper?.width || 0) - (reference?.width || 0);
+            return [widthDiff > 0 ? -widthDiff : 0, 4];
+          },
+        },
+      },
+      {
+        name: 'preventOverflow',
+        options: {
+          boundary: 'viewport',
+          tether: false,
+          padding: 8,
+        },
+      },
+      { name: 'flip', enabled: false },
+    ]}
+  />
+);
 
 // FontSizePopover component
 const FontSizePopover: React.FC<{
@@ -238,11 +267,6 @@ const CaptionEditor: React.FC = () => {
       }
       options.push({ value, label, provider });
     };
-    addOption('gpt-4o-mini', 'OpenAI: gpt-4o-mini', 'openai');
-    addOption('gpt-4o', 'OpenAI: gpt-4o', 'openai');
-    addOption('claude-3-7-sonnet-20250219', 'Anthropic: Claude 3.7 Sonnet', 'anthropic');
-    addOption('gemini:gemini-1.5-flash', 'Gemini: 1.5 Flash', 'gemini');
-    addOption('gemini:gemini-1.5-pro', 'Gemini: 1.5 Pro', 'gemini');
     openAiModels.forEach(model => addOption(model.id, `OpenAI: ${model.name}`, 'openai'));
     anthropicModels.forEach(model => addOption(model.id, `Anthropic: ${model.name}`, 'anthropic'));
     geminiModels.forEach(model => addOption(`gemini:${model.id}`, `Gemini: ${model.name}`, 'gemini'));
@@ -927,6 +951,7 @@ const CaptionEditor: React.FC = () => {
             size="small"
             disableClearable
             options={modelOptions}
+            PopperComponent={ModelPickerPopper}
             value={selectedModelOption}
             onChange={(_, newValue) => {
               if (newValue) {
@@ -987,20 +1012,11 @@ const CaptionEditor: React.FC = () => {
               />
             )}
             slotProps={{
-              popper: {
-                placement: 'bottom-end',
-                modifiers: [
-                  {
-                    name: 'offset',
-                    options: {
-                      offset: [0, 4],
-                    },
-                  },
-                ],
-              },
               paper: {
                 sx: {
                   minWidth: { xs: '100%', sm: 360 },
+                  maxWidth: 'calc(100vw - 32px)',
+                  transformOrigin: 'top right',
                   '& .MuiAutocomplete-listbox': {
                     fontFamily: '"Inconsolata", monospace',
                     '&::-webkit-scrollbar': {
