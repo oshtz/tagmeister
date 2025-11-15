@@ -17,6 +17,33 @@ type ProviderModel = {
   name: string;
 };
 
+export type ProviderId = 'openai' | 'anthropic' | 'gemini' | 'openrouter' | 'lmstudio' | 'ollama';
+type ProviderToggleState = Record<ProviderId, boolean>;
+
+const createDefaultProviderState = (): ProviderToggleState => ({
+  openai: true,
+  anthropic: true,
+  gemini: true,
+  openrouter: true,
+  lmstudio: true,
+  ollama: true,
+});
+
+const resolveProviderState = (stored?: Partial<ProviderToggleState>): ProviderToggleState => {
+  const defaults = createDefaultProviderState();
+  if (!stored) {
+    return defaults;
+  }
+  return {
+    openai: stored.openai !== false,
+    anthropic: stored.anthropic !== false,
+    gemini: stored.gemini !== false,
+    openrouter: stored.openrouter !== false,
+    lmstudio: stored.lmstudio !== false,
+    ollama: stored.ollama !== false,
+  };
+};
+
 const OPENAI_VISION_MODEL_HINTS = ['gpt-4o', 'gpt-4.1', 'omni', 'o1'];
 const GEMINI_VISION_MODEL_HINTS = ['gemini-1.5', 'gemini-pro-vision'];
 
@@ -58,6 +85,7 @@ interface AppState {
   geminiApiKeyVisible: boolean;
   prefixText: string;
   suffixText: string;
+  enabledProviders: ProviderToggleState;
   selectedModel: string;
   selectedPromptStyle: string;
   isDarkMode: boolean;
@@ -126,6 +154,7 @@ interface AppState {
   saveCaption: (imagePath: string, caption: string) => Promise<void>;
   selectDirectory: () => Promise<void>;
   setPanelWidth: (panel: 'left' | 'right', width: number) => void;
+  setProviderEnabled: (provider: ProviderId, enabled: boolean) => void;
 
   // LM Studio actions
   setLMStudioBaseUrl: (url: string) => void;
@@ -169,6 +198,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   geminiApiKeyVisible: false,
   prefixText: '',
   suffixText: '',
+  enabledProviders: createDefaultProviderState(),
   selectedModel: 'gpt-4o-mini',
   selectedPromptStyle: 'FLUX (Natural Language)',
   isDarkMode: true,
@@ -553,6 +583,15 @@ export const useAppStore = create<AppState>((set, get) => ({
     } else {
       set({ rightPanelWidth: width });
     }
+    get().saveSettings();
+  },
+  setProviderEnabled: (provider, enabled) => {
+    set(state => ({
+      enabledProviders: {
+        ...state.enabledProviders,
+        [provider]: enabled,
+      },
+    }));
     get().saveSettings();
   },
 
@@ -970,6 +1009,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         geminiModels: [],
         openRouterModels: [],
         pinnedModels: [],
+        enabledProviders: createDefaultProviderState(),
       });
       
       // Try to load settings from localStorage
@@ -1048,6 +1088,7 @@ export const useAppStore = create<AppState>((set, get) => ({
               geminiModels: storedGeminiModels,
               openRouterModels: storedOpenRouterModels,
               pinnedModels: savedPinnedModels,
+              enabledProviders: resolveProviderState(settings.enabledProviders),
             });
           }
         }
@@ -1066,9 +1107,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         anthropicApiKey,
         geminiApiKey,
         openRouterApiKey,
-        isDarkMode, 
-        fontSize, 
-        selectedModel, 
+        isDarkMode,
+        fontSize,
+        selectedModel,
         selectedPromptStyle,
         prefixText,
         suffixText,
@@ -1084,7 +1125,8 @@ export const useAppStore = create<AppState>((set, get) => ({
         geminiModels,
         openRouterModels,
         pinnedModels,
-        customSystemPrompts
+        customSystemPrompts,
+        enabledProviders,
       } = get();
       
       // Create settings object
@@ -1129,6 +1171,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           name: model.name
         })),
         pinnedModels: [...pinnedModels],
+        enabledProviders,
         customSystemPrompts: customSystemPrompts.map(prompt => ({
           name: prompt.name,
           description: prompt.description,

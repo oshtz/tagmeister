@@ -12,11 +12,12 @@ import {
   Tooltip,
   Typography,
   Divider,
+  Switch,
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import LinkIcon from '@mui/icons-material/Link';
-import { useAppStore } from '../context/AppStore';
+import { useAppStore, type ProviderId } from '../context/AppStore';
 
 interface SettingsPanelDialogProps {
   open: boolean;
@@ -54,6 +55,8 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
     ollamaAvailable,
     ollamaModels,
     showAlertDialog,
+    enabledProviders,
+    setProviderEnabled,
   } = useAppStore();
 
   const renderApiKeyField = (
@@ -62,19 +65,30 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
     setter: (value: string) => void,
     visible: boolean,
     toggleVisibility: () => void,
-    placeholder: string
+    placeholder: string,
+    provider?: ProviderId
   ) => (
     <Box sx={{ mb: 3 }}>
-      <Typography
-        variant="caption"
-        sx={{
-          display: 'block',
-          mb: 1,
-          fontFamily: '"Karla", sans-serif',
-        }}
-      >
-        {label}
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            display: 'block',
+            fontFamily: '"Karla", sans-serif',
+          }}
+        >
+          {label}
+        </Typography>
+        {provider && (
+          <Tooltip title="Show provider models in the dropdown">
+            <Switch
+              size="small"
+              checked={enabledProviders[provider]}
+              onChange={(_, checked) => setProviderEnabled(provider, checked)}
+            />
+          </Tooltip>
+        )}
+      </Box>
       <TextField
         fullWidth
         size="small"
@@ -140,19 +154,30 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
     setter: (value: string) => void,
     placeholder: string,
     onCheck: () => Promise<void>,
-    status: { available: boolean; emptyMessage: string; missingMessage: string }
+    status: { available: boolean; emptyMessage: string; missingMessage: string },
+    provider?: ProviderId
   ) => (
     <Box sx={{ mb: 3 }}>
-      <Typography
-        variant="caption"
-        sx={{
-          display: 'block',
-          mb: 1,
-          fontFamily: '"Karla", sans-serif',
-        }}
-      >
-        {label}
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            display: 'block',
+            fontFamily: '"Karla", sans-serif',
+          }}
+        >
+          {label}
+        </Typography>
+        {provider && (
+          <Tooltip title="Show provider models in the dropdown">
+            <Switch
+              size="small"
+              checked={enabledProviders[provider]}
+              onChange={(_, checked) => setProviderEnabled(provider, checked)}
+            />
+          </Tooltip>
+        )}
+      </Box>
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
         <TextField
           fullWidth
@@ -181,7 +206,13 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
           }}
         />
         <Tooltip title={`Check ${label} connection`}>
-          <IconButton color="primary" size="small" onClick={onCheck}>
+          <IconButton
+            color="primary"
+            size="small"
+            onClick={() => {
+              void onCheck();
+            }}
+          >
             <LinkIcon />
           </IconButton>
         </Tooltip>
@@ -243,8 +274,33 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
       <DialogContent
         dividers
         sx={{
-          py: 3,
-          px: { xs: 2, md: 3 },
+          py: 2,
+          px: { xs: 1.5, md: 2 },
+          overflowY: 'auto',
+          '&::-webkit-scrollbar': {
+            width: '8px',
+            backgroundColor: 'transparent',
+          },
+          '&::-webkit-scrollbar-track': {
+            backgroundColor: theme =>
+              theme.palette.mode === 'dark'
+                ? 'rgba(255, 255, 255, 0.05)'
+                : 'rgba(0, 0, 0, 0.05)',
+            borderRadius: '4px',
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: theme =>
+              theme.palette.mode === 'dark'
+                ? 'rgba(0, 150, 136, 0.7)'
+                : 'rgba(0, 150, 136, 0.6)',
+            borderRadius: '4px',
+            '&:hover': {
+              backgroundColor: theme =>
+                theme.palette.mode === 'dark'
+                  ? 'rgba(0, 150, 136, 0.9)'
+                  : 'rgba(0, 150, 136, 0.8)',
+            },
+          },
         }}
       >
         <Typography variant="subtitle1" sx={{ fontFamily: '"Karla", sans-serif', mb: 2 }}>
@@ -284,6 +340,46 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
             missingMessage: !ollamaAvailable ? 'Ollama not available or not running at the specified URL.' : '',
           }
         )}
+
+        <Divider sx={{ my: 3 }} />
+
+        <Typography variant="subtitle1" sx={{ fontFamily: '"Karla", sans-serif' }}>
+          Provider Visibility
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Toggle which providers appear in the model picker. Your pinned models remain available even if their provider is hidden.
+        </Typography>
+        <Grid container spacing={2}>
+          {providerToggleOptions.map(option => (
+            <Grid item xs={12} sm={6} key={option.id}>
+              <Box
+                sx={{
+                  border: theme => `1px solid ${theme.palette.divider}`,
+                  borderRadius: 1,
+                  p: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 2,
+                }}
+              >
+                <Box sx={{ maxWidth: '70%' }}>
+                  <Typography variant="subtitle2" sx={{ fontFamily: '"Karla", sans-serif' }}>
+                    {option.label}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {option.description}
+                  </Typography>
+                </Box>
+                <Switch
+                  size="small"
+                  checked={enabledProviders[option.id]}
+                  onChange={(_, checked) => setProviderEnabled(option.id, checked)}
+                />
+              </Box>
+            </Grid>
+          ))}
+        </Grid>
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={onClose} variant="contained" color="primary">

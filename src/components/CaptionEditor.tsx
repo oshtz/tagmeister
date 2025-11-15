@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react';
-import { useAppStore } from '../context/AppStore';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useAppStore, type ProviderId } from '../context/AppStore';
 import { 
   Box, 
   Paper, 
@@ -151,101 +151,15 @@ const FontSizePopover: React.FC<{
 };
 
 const CaptionEditor: React.FC = () => {
-  // Add global styles to completely remove any shadows from API key inputs
-  useLayoutEffect(() => {
-    // Create a style element
-    const styleEl = document.createElement('style');
-    // Comprehensive rules to eliminate all shadows
-    styleEl.innerHTML = `
-      /* Target all shadows everywhere in the API key section */
-      .MuiPaper-root.MuiAccordion-root,
-      .MuiPaper-root.MuiAccordion-root .MuiAccordionSummary-root,
-      .MuiPaper-root.MuiAccordion-root .MuiAccordionDetails-root,
-      .MuiPaper-root.MuiAccordion-root .MuiAccordionDetails-root *,
-      .MuiPaper-root.MuiAccordion-root .MuiAccordionDetails-root .MuiInputBase-root,
-      .MuiPaper-root.MuiAccordion-root .MuiAccordionDetails-root .MuiTextField-root,
-      .MuiPaper-root.MuiAccordion-root .MuiAccordionDetails-root .MuiOutlinedInput-root,
-      .MuiPaper-root.MuiAccordion-root .MuiAccordionDetails-root .MuiInputBase-root .MuiInputAdornment-root {
-        box-shadow: none !important;
-        -webkit-box-shadow: none !important;
-        -moz-box-shadow: none !important;
-        filter: none !important;
-        text-shadow: none !important;
-      }
-      
-      /* Removing divider between accordion summary and details */
-      .MuiPaper-root.MuiAccordion-root .MuiAccordionSummary-root {
-        border-bottom: none !important;
-        box-shadow: none !important;
-        margin-bottom: 0 !important;
-      }
-      
-      .MuiPaper-root.MuiAccordion-root .MuiAccordionSummary-root.Mui-expanded {
-        min-height: 48px !important;
-        margin: 0 !important;
-      }
-      
-      /* Remove the divider line completely */
-      .MuiPaper-root.MuiAccordion-root .MuiDivider-root,
-      .MuiPaper-root.MuiAccordion-root hr {
-        display: none !important;
-      }
-      
-      /* Remove the shadow specifically between header and content */
-      .MuiPaper-root.MuiAccordion-root::after,
-      .MuiPaper-root.MuiAccordion-root::before,
-      .MuiPaper-root.MuiAccordion-root .MuiAccordionSummary-root::after {
-        display: none !important;
-        box-shadow: none !important;
-        border: none !important;
-      }
-      
-      .MuiAccordionDetails-root {
-        padding-top: 8px !important;
-        border-top: none !important;
-      }
-      
-      /* Light mode specific overrides */
-      body[data-color-mode="light"] .MuiPaper-root.MuiAccordion-root {
-        box-shadow: none !important;
-      }
-      
-      /* Ensuring no borders or outlines */
-      .MuiPaper-root.MuiAccordion-root .MuiAccordionDetails-root .MuiOutlinedInput-notchedOutline,
-      .MuiPaper-root.MuiAccordion-root .MuiInputBase-root fieldset {
-        border: none !important;
-        outline: none !important;
-      }
-    `;
-    // Append the style to the document head
-    document.head.appendChild(styleEl);
-    
-    // Cleanup function to remove the style on unmount
-    return () => {
-      document.head.removeChild(styleEl);
-    };
-  }, []);
-  
   const { 
     selectedImage,
     selectedImages,
     captions,
     apiKey,
-    apiKeyVisible,
-    toggleApiKeyVisibility,
-    setApiKey,
     anthropicApiKey,
-    anthropicApiKeyVisible,
-    toggleAnthropicApiKeyVisibility,
-    setAnthropicApiKey,
     openRouterApiKey,
-    openRouterApiKeyVisible,
-    toggleOpenRouterApiKeyVisibility,
-    setOpenRouterApiKey,
     geminiApiKey,
-    geminiApiKeyVisible,
-    toggleGeminiApiKeyVisibility,
-    setGeminiApiKey,
+    enabledProviders,
     prefixText,
     suffixText,
     selectedModel,
@@ -267,14 +181,12 @@ const CaptionEditor: React.FC = () => {
     shouldInterrupt,
     // LM Studio
     lmStudioBaseUrl,
-    setLMStudioBaseUrl,
     checkLMStudioConnection,
     fetchLMStudioModels,
     lmStudioAvailable,
     lmStudioModels,
     // Ollama
     ollamaBaseUrl,
-    setOllamaBaseUrl,
     checkOllamaConnection,
     fetchOllamaModels,
     ollamaAvailable,
@@ -316,10 +228,14 @@ const CaptionEditor: React.FC = () => {
   const promptOptions = getSystemPromptOptions();
   const pinnedSet = useMemo(() => new Set(pinnedModels), [pinnedModels]);
   const modelOptions = useMemo(() => {
-    type Option = { value: string; label: string; provider: string };
+    type Option = { value: string; label: string; provider: ProviderId };
     const options: Option[] = [];
-    const addOption = (value: string, label: string, provider: string) => {
+    const addOption = (value: string, label: string, provider: ProviderId) => {
       if (!value) return;
+      const providerEnabled = enabledProviders?.[provider] !== false;
+      if (!providerEnabled && value !== selectedModel) {
+        return;
+      }
       options.push({ value, label, provider });
     };
     addOption('gpt-4o-mini', 'OpenAI: gpt-4o-mini', 'openai');
@@ -401,12 +317,22 @@ const CaptionEditor: React.FC = () => {
     ollamaModels,
     openRouterModels,
     pinnedModels,
-    getProviderForModel
+    getProviderForModel,
+    enabledProviders
   ]);
   const selectedModelOption = useMemo(
     () => modelOptions.find(option => option.value === selectedModel) ?? null,
     [modelOptions, selectedModel]
   );
+  useEffect(() => {
+    const provider = getProviderForModel(selectedModel) as ProviderId;
+    if (enabledProviders?.[provider] === false) {
+      const fallback = modelOptions.find(option => enabledProviders?.[option.provider] !== false);
+      if (fallback && fallback.value !== selectedModel) {
+        setModel(fallback.value);
+      }
+    }
+  }, [enabledProviders, selectedModel, modelOptions, getProviderForModel, setModel]);
   const selectedProvider = getProviderForModel(selectedModel);
   const isProviderReady = useMemo(() => {
     switch (selectedProvider) {
@@ -895,40 +821,57 @@ const CaptionEditor: React.FC = () => {
         minHeight: '400px' // Ensure minimum height for the container
       }}
     >
-      <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography
-          variant="h6"
-          sx={{ fontFamily: '"Karla", sans-serif' }}
+      <Box sx={{ mb: 2 }}>
+        <Button
+          variant="outlined"
+          startIcon={<SettingsIcon />}
+          fullWidth
+          onClick={() => setSettingsPanelOpen(true)}
+          sx={{
+            justifyContent: 'flex-start',
+            borderRadius: 1,
+            height: 48,
+            fontFamily: '"Karla", sans-serif',
+            mb: 2
+          }}
         >
-          Auto-Captioner
-        </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {/* Font size popover control */}
-          <FontSizePopover
-            fontSize={fontSize}
-            adjustFontSize={adjustFontSize}
-          />
-          <Tooltip title="Refresh available models">
-            <IconButton
-              size="small"
-              onClick={handleModelMenuOpen}
-              aria-label="Refresh available models"
-              sx={{
-                borderRadius: '12px',
-                padding: '6px',
-                backgroundColor: theme => theme.palette.mode === 'dark'
-                  ? 'rgba(255,255,255,0.08)'
-                  : 'rgba(0,0,0,0.04)',
-                '&:hover': {
+          Settings
+        </Button>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography
+            variant="h6"
+            sx={{ fontFamily: '"Karla", sans-serif' }}
+          >
+            Auto-Captioner
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {/* Font size popover control */}
+            <FontSizePopover
+              fontSize={fontSize}
+              adjustFontSize={adjustFontSize}
+            />
+            <Tooltip title="Refresh available models">
+              <IconButton
+                size="small"
+                onClick={handleModelMenuOpen}
+                aria-label="Refresh available models"
+                sx={{
+                  borderRadius: '12px',
+                  padding: '6px',
                   backgroundColor: theme => theme.palette.mode === 'dark'
-                    ? 'rgba(255,255,255,0.12)'
-                    : 'rgba(0,0,0,0.08)'
-                }
-              }}
-            >
-              <RefreshIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
+                    ? 'rgba(255,255,255,0.08)'
+                    : 'rgba(0,0,0,0.04)',
+                  '&:hover': {
+                    backgroundColor: theme => theme.palette.mode === 'dark'
+                      ? 'rgba(255,255,255,0.12)'
+                      : 'rgba(0,0,0,0.08)'
+                  }
+                }}
+              >
+                <RefreshIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
         </Box>
       </Box>
       
@@ -969,22 +912,6 @@ const CaptionEditor: React.FC = () => {
                 aria-label="Manage system prompts"
               >
                 <ManageAccountsIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Settings">
-              <IconButton
-                color="primary"
-                size="small"
-                onClick={() => setSettingsPanelOpen(true)}
-                sx={{
-                  border: theme => `1px solid ${theme.palette.divider}`,
-                  borderRadius: 1,
-                  height: '40px',
-                  width: '40px'
-                }}
-                aria-label="Open settings panel"
-              >
-                <SettingsIcon fontSize="small" />
               </IconButton>
             </Tooltip>
           </Box>
@@ -1057,6 +984,7 @@ const CaptionEditor: React.FC = () => {
             slotProps={{
               paper: {
                 sx: {
+                  minWidth: { xs: '100%', sm: 360 },
                   '& .MuiAutocomplete-listbox': {
                     fontFamily: '"Inconsolata", monospace',
                     '&::-webkit-scrollbar': {
