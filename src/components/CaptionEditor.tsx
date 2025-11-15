@@ -66,7 +66,7 @@ const filterModelOptions = (
 };
 
 const ModelPickerPopper: React.FC<PopperProps> = (props) => {
-  const { anchorEl, style, ...otherProps } = props;
+  const { anchorEl, ...otherProps } = props;
 
   return (
     <Popper
@@ -85,18 +85,14 @@ const ModelPickerPopper: React.FC<PopperProps> = (props) => {
           },
         },
       ]}
-      style={{
-        ...style,
-        position: 'fixed',
-        inset: 'auto',
-      }}
       sx={{
         zIndex: (theme) => theme.zIndex.modal,
-        right: (anchorEl as HTMLElement)?.getBoundingClientRect?.()?.right
-          ? `${window.innerWidth - (anchorEl as HTMLElement).getBoundingClientRect().right}px !important`
-          : undefined,
-        left: 'auto !important',
-        maxWidth: 'calc(100vw - 32px)',
+        // Ensure the popper doesn't extend beyond the anchor element's right edge
+        '& .MuiPaper-root': {
+          maxWidth: (anchorEl as HTMLElement)?.offsetWidth
+            ? `${(anchorEl as HTMLElement).offsetWidth}px`
+            : '100%',
+        },
       }}
     />
   );
@@ -1024,11 +1020,7 @@ const CaptionEditor: React.FC = () => {
             slotProps={{
               paper: {
                 sx: {
-                  minWidth: 'min(360px, calc(100vw - 32px))',
-                  maxWidth: 'calc(100vw - 32px)',
-                  width: 'auto',
-                  transformOrigin: 'top right',
-                  right: 0,
+                  width: '100%',
                   '& .MuiAutocomplete-listbox': {
                     fontFamily: '"Inconsolata", monospace',
                     '&::-webkit-scrollbar': {
