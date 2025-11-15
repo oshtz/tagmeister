@@ -15,9 +15,6 @@ import {
   Grid,
   InputAdornment,
   Collapse,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -27,18 +24,15 @@ import {
 } from '@mui/material';
 import Autocomplete from '@mui/material/Autocomplete';
 import type { FilterOptionsState } from '@mui/material/useAutocomplete';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import LinkIcon from '@mui/icons-material/Link';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import StarIcon from '@mui/icons-material/Star';
 import StarBorderIcon from '@mui/icons-material/StarBorder';
+import SettingsIcon from '@mui/icons-material/Settings';
 import { OpenAIService } from '../services/OpenAIService';
 import { AnthropicService } from '../services/AnthropicService';
 import { LMStudioService } from '../services/LMStudioService';
@@ -48,6 +42,7 @@ import Slider from '@mui/material/Slider';
 import Tooltip from '@mui/material/Tooltip';
 import AlertDialog from './AlertDialog';
 import SystemPromptManagerDialog from './SystemPromptManagerDialog';
+import SettingsPanelDialog from './SettingsPanelDialog';
 
 type ModelOption = {
   value: string;
@@ -315,6 +310,7 @@ const CaptionEditor: React.FC = () => {
   const [caption, setCaption] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPromptManagerOpen, setPromptManagerOpen] = useState(false);
+  const [isSettingsPanelOpen, setSettingsPanelOpen] = useState(false);
   const [modelFilter, setModelFilter] = useState('');
   const [modelMenuAnchor, setModelMenuAnchor] = useState<null | HTMLElement>(null);
   const promptOptions = getSystemPromptOptions();
@@ -877,6 +873,10 @@ const CaptionEditor: React.FC = () => {
           open={isPromptManagerOpen}
           onClose={() => setPromptManagerOpen(false)}
         />
+        <SettingsPanelDialog
+          open={isSettingsPanelOpen}
+          onClose={() => setSettingsPanelOpen(false)}
+        />
       </>
     );
   }
@@ -895,497 +895,6 @@ const CaptionEditor: React.FC = () => {
         minHeight: '400px' // Ensure minimum height for the container
       }}
     >
-      {/* API Settings section */}
-      <Accordion 
-        elevation={0}
-        square
-        sx={{ 
-          mb: 2,
-          '&.MuiAccordion-root': {
-            boxShadow: 'none !important',
-            border: '1px solid',
-            borderColor: 'divider',
-            '&:before': {
-              display: 'none',
-            },
-          }
-        }}
-        disableGutters
-      >
-        <AccordionSummary
-          expandIcon={<ExpandMoreIcon />}
-          sx={{
-            minHeight: '48px',
-            borderBottom: 'none',
-            boxShadow: 'none !important',
-            '&.Mui-expanded': {
-              borderBottom: 'none',
-              minHeight: '48px',
-              boxShadow: 'none !important'
-            },
-            '& .MuiAccordionSummary-content': {
-              margin: '8px 0',
-            }
-          }}
-        >
-          <Typography 
-            variant="subtitle2" 
-            sx={{ 
-              fontFamily: '"Karla", sans-serif'
-            }}
-          >
-            API Settings
-          </Typography>
-        </AccordionSummary>
-        <AccordionDetails 
-          sx={{ 
-            pt: 0, 
-            mt: 0,
-            boxShadow: 'none !important', 
-            border: 'none',
-            borderTop: 'none !important',
-            background: 'transparent !important'
-          }}
-        >
-          {/* OpenAI API Key */}
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              display: 'block',
-              mb: 1,
-              fontFamily: '"Karla", sans-serif'
-            }}
-          >
-            OpenAI API Key
-          </Typography>
-          <TextField
-            fullWidth
-            size="small"
-            type={apiKeyVisible ? 'text' : 'password'}
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="Enter OpenAI API Key"
-            variant="standard" 
-            InputLabelProps={{
-              sx: { boxShadow: 'none !important' }
-            }}
-            InputProps={{
-              sx: theme => ({
-                fontFamily: '"Inconsolata", monospace',
-                boxShadow: 'none !important',
-                filter: 'none !important',
-                ...(theme.palette.mode === 'light' && {
-                  background: 'transparent',
-                  '& svg': { filter: 'none !important' }
-                }),
-                '& fieldset': {
-                  boxShadow: 'none !important',
-                  border: 'none !important'
-                }
-              }),
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={toggleApiKeyVisibility}
-                    edge="end"
-                    size="small"
-                    sx={{
-                      boxShadow: 'none !important',
-                      border: 'none'
-                    }}
-                  >
-                    {apiKeyVisible ? <VisibilityOffIcon /> : <VisibilityIcon color="primary" />}
-                  </IconButton>
-                </InputAdornment>
-              )
-            }}
-            sx={theme => ({
-              boxShadow: 'none !important', 
-              filter: 'none !important',
-              mb: 2,
-              ...(theme.palette.mode === 'light' && {
-                '& .MuiOutlinedInput-notchedOutline': {
-                  boxShadow: 'none !important',
-                  border: 'none !important'
-                },
-                '& .MuiInputBase-root': {
-                  boxShadow: 'none !important',
-                  border: 'none !important'
-                }
-              })
-            })}
-          />
-          
-          {/* Anthropic API Key */}
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              display: 'block',
-              mb: 1,
-              fontFamily: '"Karla", sans-serif'
-            }}
-          >
-            Anthropic API Key
-          </Typography>
-          <TextField
-            fullWidth
-            size="small"
-            type={anthropicApiKeyVisible ? 'text' : 'password'}
-            value={anthropicApiKey}
-            onChange={(e) => setAnthropicApiKey(e.target.value)}
-            placeholder="Enter Anthropic API Key"
-            variant="standard" 
-            InputLabelProps={{
-              sx: { boxShadow: 'none !important' }
-            }}
-            InputProps={{
-              sx: theme => ({
-                fontFamily: '"Inconsolata", monospace',
-                boxShadow: 'none !important',
-                filter: 'none !important',
-                ...(theme.palette.mode === 'light' && {
-                  background: 'transparent',
-                  '& svg': { filter: 'none !important' }
-                }),
-                '& fieldset': {
-                  boxShadow: 'none !important',
-                  border: 'none !important'
-                }
-              }),
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={toggleAnthropicApiKeyVisibility}
-                    edge="end"
-                    size="small"
-                    sx={{
-                      boxShadow: 'none !important',
-                      border: 'none'
-                    }}
-                  >
-                    {anthropicApiKeyVisible ? <VisibilityOffIcon /> : <VisibilityIcon color="primary" />}
-                  </IconButton>
-                </InputAdornment>
-              )
-            }}
-            sx={theme => ({
-              boxShadow: 'none !important', 
-              filter: 'none !important',
-              mb: 2,
-              ...(theme.palette.mode === 'light' && {
-                '& .MuiOutlinedInput-notchedOutline': {
-                  boxShadow: 'none !important',
-                  border: 'none !important'
-                },
-                '& .MuiInputBase-root': {
-                  boxShadow: 'none !important',
-                  border: 'none !important'
-                }
-              })
-            })}
-          />
-
-          {/* OpenRouter API Key */}
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              display: 'block',
-              mb: 1,
-              fontFamily: '"Karla", sans-serif'
-            }}
-          >
-            OpenRouter API Key
-          </Typography>
-          <TextField
-            fullWidth
-            size="small"
-            type={openRouterApiKeyVisible ? 'text' : 'password'}
-            value={openRouterApiKey}
-            onChange={(e) => setOpenRouterApiKey(e.target.value)}
-            placeholder="Enter OpenRouter API Key"
-            variant="standard" 
-            InputLabelProps={{
-              sx: { boxShadow: 'none !important' }
-            }}
-            InputProps={{
-              sx: theme => ({
-                fontFamily: '"Inconsolata", monospace',
-                boxShadow: 'none !important',
-                filter: 'none !important',
-                ...(theme.palette.mode === 'light' && {
-                  background: 'transparent',
-                  '& svg': { filter: 'none !important' }
-                }),
-                '& fieldset': {
-                  boxShadow: 'none !important',
-                  border: 'none !important'
-                }
-              }),
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={toggleOpenRouterApiKeyVisibility}
-                    edge="end"
-                    size="small"
-                    sx={{
-                      boxShadow: 'none !important',
-                      border: 'none'
-                    }}
-                  >
-                    {openRouterApiKeyVisible ? <VisibilityOffIcon /> : <VisibilityIcon color="primary" />}
-                  </IconButton>
-                </InputAdornment>
-              )
-            }}
-            sx={theme => ({
-              boxShadow: 'none !important', 
-              filter: 'none !important',
-              mb: 2,
-              ...(theme.palette.mode === 'light' && {
-                '& .MuiOutlinedInput-notchedOutline': {
-                  boxShadow: 'none !important',
-                  border: 'none !important'
-                },
-                '& .MuiInputBase-root': {
-                  boxShadow: 'none !important',
-                  border: 'none !important'
-                }
-              })
-            })}
-          />
-          
-          {/* Gemini API Key */}
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              display: 'block',
-              mb: 1,
-              fontFamily: '"Karla", sans-serif'
-            }}
-          >
-            Gemini API Key
-          </Typography>
-          <TextField
-            fullWidth
-            size="small"
-            type={geminiApiKeyVisible ? 'text' : 'password'}
-            value={geminiApiKey}
-            onChange={(e) => setGeminiApiKey(e.target.value)}
-            placeholder="Enter Gemini API Key"
-            variant="standard" 
-            InputLabelProps={{
-              sx: { boxShadow: 'none !important' }
-            }}
-            InputProps={{
-              sx: theme => ({
-                fontFamily: '"Inconsolata", monospace',
-                boxShadow: 'none !important',
-                filter: 'none !important',
-                ...(theme.palette.mode === 'light' && {
-                  background: 'transparent',
-                  '& svg': { filter: 'none !important' }
-                }),
-                '& fieldset': {
-                  boxShadow: 'none !important',
-                  border: 'none !important'
-                }
-              }),
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={toggleGeminiApiKeyVisibility}
-                    edge="end"
-                    size="small"
-                    sx={{
-                      boxShadow: 'none !important',
-                      border: 'none'
-                    }}
-                  >
-                    {geminiApiKeyVisible ? <VisibilityOffIcon /> : <VisibilityIcon color="primary" />}
-                  </IconButton>
-                </InputAdornment>
-              )
-            }}
-            sx={theme => ({
-              boxShadow: 'none !important', 
-              filter: 'none !important',
-              mb: 2,
-              ...(theme.palette.mode === 'light' && {
-                '& .MuiOutlinedInput-notchedOutline': {
-                  boxShadow: 'none !important',
-                  border: 'none !important'
-                },
-                '& .MuiInputBase-root': {
-                  boxShadow: 'none !important',
-                  border: 'none !important'
-                }
-              })
-            })}
-          />
-
-          {/* LM Studio Server URL */}
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              display: 'block',
-              mb: 1,
-              fontFamily: '"Karla", sans-serif'
-            }}
-          >
-            LM Studio Server URL
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center' }}>
-            <TextField
-              fullWidth
-              size="small"
-              value={lmStudioBaseUrl}
-              onChange={(e) => setLMStudioBaseUrl(e.target.value)}
-              placeholder="http://localhost:1234/v1"
-              variant="standard"
-              InputLabelProps={{
-                sx: { boxShadow: 'none !important' }
-              }}
-              InputProps={{
-                sx: theme => ({
-                  fontFamily: '"Inconsolata", monospace',
-                  boxShadow: 'none !important',
-                  filter: 'none !important',
-                  ...(theme.palette.mode === 'light' && {
-                    background: 'transparent',
-                    '& svg': { filter: 'none !important' }
-                  }),
-                  '& fieldset': {
-                    boxShadow: 'none !important',
-                    border: 'none !important'
-                  }
-                })
-              }}
-            />
-            <Tooltip
-              title="Check LM Studio Connection"
-              placement="right"
-              PopperProps={{
-                modifiers: [
-                  {
-                    name: 'offset',
-                    options: {
-                      offset: [-8, 0],
-                    },
-                  },
-                ],
-              }}
-            >
-              <IconButton
-                color="primary"
-                size="small"
-                sx={{ ml: 1 }}
-                onClick={async () => {
-                  const ok = await checkLMStudioConnection();
-                  if (ok) {
-                    await fetchLMStudioModels();
-                    showAlertDialog('LM Studio connected and models loaded.', { type: 'info', title: 'LM Studio Connected' });
-                  } else {
-                    showAlertDialog('Could not connect to LM Studio at the specified URL.', { type: 'error', title: 'LM Studio Connection Failed' });
-                  }
-                }}
-              >
-                <LinkIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
-          {lmStudioAvailable && lmStudioModels.length === 0 && (
-            <Typography variant="caption" color="warning.main">
-              No vision-capable models found on LM Studio.
-            </Typography>
-          )}
-          {!lmStudioAvailable && (
-            <Typography variant="caption" color="error.main">
-              LM Studio not available or not running at the specified URL.
-            </Typography>
-          )}
-
-          {/* Ollama Server URL */}
-          <Typography 
-            variant="caption" 
-            sx={{ 
-              display: 'block',
-              mb: 1,
-              fontFamily: '"Karla", sans-serif'
-            }}
-          >
-            Ollama Server URL
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center' }}>
-            <TextField
-              fullWidth
-              size="small"
-              value={ollamaBaseUrl}
-              onChange={(e) => setOllamaBaseUrl(e.target.value)}
-              placeholder="http://localhost:11434"
-              variant="standard"
-              InputLabelProps={{
-                sx: { boxShadow: 'none !important' }
-              }}
-              InputProps={{
-                sx: theme => ({
-                  fontFamily: '"Inconsolata", monospace',
-                  boxShadow: 'none !important',
-                  filter: 'none !important',
-                  ...(theme.palette.mode === 'light' && {
-                    background: 'transparent',
-                    '& svg': { filter: 'none !important' }
-                  }),
-                  '& fieldset': {
-                    boxShadow: 'none !important',
-                    border: 'none !important'
-                  }
-                })
-              }}
-            />
-            <Tooltip
-              title="Check Ollama Connection"
-              placement="right"
-              PopperProps={{
-                modifiers: [
-                  {
-                    name: 'offset',
-                    options: {
-                      offset: [-8, 0],
-                    },
-                  },
-                ],
-              }}
-            >
-              <IconButton
-                color="primary"
-                size="small"
-                sx={{ ml: 1 }}
-                onClick={async () => {
-                  const ok = await checkOllamaConnection();
-                  if (ok) {
-                    await fetchOllamaModels();
-                    showAlertDialog('Ollama connected and models loaded.', { type: 'info', title: 'Ollama Connected' });
-                  } else {
-                    showAlertDialog('Could not connect to Ollama at the specified URL.', { type: 'error', title: 'Ollama Connection Failed' });
-                  }
-                }}
-              >
-                <LinkIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
-          {ollamaAvailable && ollamaModels.length === 0 && (
-            <Typography variant="caption" color="warning.main">
-              No vision-capable models found on Ollama.
-            </Typography>
-          )}
-          {!ollamaAvailable && (
-            <Typography variant="caption" color="error.main">
-              Ollama not available or not running at the specified URL.
-            </Typography>
-          )}
-        </AccordionDetails>
-      </Accordion>
       <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Typography
           variant="h6"
@@ -1460,6 +969,22 @@ const CaptionEditor: React.FC = () => {
                 aria-label="Manage system prompts"
               >
                 <ManageAccountsIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Settings">
+              <IconButton
+                color="primary"
+                size="small"
+                onClick={() => setSettingsPanelOpen(true)}
+                sx={{
+                  border: theme => `1px solid ${theme.palette.divider}`,
+                  borderRadius: 1,
+                  height: '40px',
+                  width: '40px'
+                }}
+                aria-label="Open settings panel"
+              >
+                <SettingsIcon fontSize="small" />
               </IconButton>
             </Tooltip>
           </Box>
@@ -1792,6 +1317,10 @@ const CaptionEditor: React.FC = () => {
       <SystemPromptManagerDialog
         open={isPromptManagerOpen}
         onClose={() => setPromptManagerOpen(false)}
+      />
+      <SettingsPanelDialog
+        open={isSettingsPanelOpen}
+        onClose={() => setSettingsPanelOpen(false)}
       />
     </>
   );
