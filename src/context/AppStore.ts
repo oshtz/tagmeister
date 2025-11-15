@@ -827,6 +827,59 @@ export const useAppStore = create<AppState>((set, get) => ({
       throw new Error('OpenRouter API key is required to load models.');
     }
     try {
+      const normalizeInputs = (value: any): string[] => {
+        if (!value) return [];
+        if (typeof value === 'string') {
+          return [value.toLowerCase()];
+        }
+        if (Array.isArray(value)) {
+          return value
+            .map(item => {
+              if (typeof item === 'string') {
+                return item.toLowerCase();
+              }
+              return '';
+            })
+            .filter(Boolean);
+        }
+        return [];
+      };
+      const supportsImageInput = (model: any): boolean => {
+        const architectureModality = typeof model?.architecture?.modality === 'string'
+          ? model.architecture.modality.toLowerCase()
+          : null;
+        if (architectureModality && architectureModality.includes('embedding')) {
+          return false;
+        }
+        const candidateLists = [
+          normalizeInputs(model?.capabilities?.input),
+          normalizeInputs(model?.capabilities?.input_modalities),
+          normalizeInputs(model?.capabilities?.modalities),
+          normalizeInputs(model?.input),
+          normalizeInputs(model?.modalities),
+          normalizeInputs(model?.architecture?.input_modalities),
+          normalizeInputs(model?.architecture?.output_modalities)
+        ];
+        if (candidateLists.some(list => list.includes('image'))) {
+          return true;
+        }
+        if (typeof model?.architecture?.modality === 'string') {
+          const modality = model.architecture.modality.toLowerCase();
+          if (modality.includes('image') || modality.includes('vision')) {
+            return true;
+          }
+        }
+        if (typeof model?.capabilities?.vision === 'boolean' && model.capabilities.vision) {
+          return true;
+        }
+        if (typeof model?.capabilities?.image === 'boolean' && model.capabilities.image) {
+          return true;
+        }
+        if (model?.pricing && model.pricing.image !== undefined && model.pricing.image !== null) {
+          return true;
+        }
+        return false;
+      };
       const response = await fetch('https://openrouter.ai/api/v1/models/user', {
         headers: {
           'Content-Type': 'application/json',
@@ -847,12 +900,11 @@ export const useAppStore = create<AppState>((set, get) => ({
           : [];
       const models = rawModels
         .filter((model: any) => {
-          const inputs: string[] = Array.isArray(model?.capabilities?.input)
-            ? model.capabilities.input
-            : Array.isArray(model?.input)
-              ? model.input
-              : [];
-          return inputs.some(input => typeof input === 'string' && input.toLowerCase() === 'image');
+          const identifier = typeof model?.id === 'string' ? model.id : model?.name;
+          if (!identifier || typeof identifier !== 'string') {
+            return false;
+          }
+          return supportsImageInput(model);
         })
         .map((model: any) => ({
           id: typeof model?.id === 'string' ? model.id : typeof model?.name === 'string' ? model.name : '',
@@ -863,6 +915,7 @@ export const useAppStore = create<AppState>((set, get) => ({
               : 'OpenRouter Model'
         }))
         .filter(model => !!model.id);
+      console.log(`OpenRouter vision models loaded: ${models.length}/${rawModels.length}`);
       set({ openRouterModels: dedupeModels(models) });
       get().saveSettings();
     } catch (error) {

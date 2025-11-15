@@ -190,7 +190,7 @@ const SystemPromptManagerDialog: React.FC<SystemPromptManagerDialogProps> = ({ o
           width: '100%',
           backgroundColor: theme =>
             theme.palette.mode === 'dark'
-              ? theme.palette.background.default
+              ? theme.palette.grey[900]
               : theme.palette.background.paper,
         },
       }}
@@ -204,6 +204,10 @@ const SystemPromptManagerDialog: React.FC<SystemPromptManagerDialogProps> = ({ o
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
+          backgroundColor: theme =>
+            theme.palette.mode === 'dark'
+              ? theme.palette.grey[900]
+              : theme.palette.background.paper,
         }}
       >
         <Grid container spacing={3} sx={{ flexGrow: 1, minHeight: 0 }}>
@@ -253,9 +257,18 @@ const SystemPromptManagerDialog: React.FC<SystemPromptManagerDialogProps> = ({ o
                 </List>
               </Box>
               <Button
-                variant="outlined"
+                variant="contained"
+                color="primary"
                 startIcon={<AddIcon />}
                 onClick={handleCreateNewPrompt}
+                sx={{
+                  fontFamily: '"Karla", sans-serif',
+                  bgcolor: theme => theme.palette.mode === 'dark' ? 'secondary.main' : 'primary.main',
+                  color: 'white',
+                  '&:hover': {
+                    bgcolor: theme => theme.palette.mode === 'dark' ? 'secondary.dark' : 'primary.dark',
+                  },
+                }}
               >
                 New Custom Prompt
               </Button>
