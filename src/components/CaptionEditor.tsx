@@ -222,6 +222,10 @@ const CaptionEditor: React.FC = () => {
     anthropicApiKeyVisible,
     toggleAnthropicApiKeyVisibility,
     setAnthropicApiKey,
+    geminiApiKey,
+    geminiApiKeyVisible,
+    toggleGeminiApiKeyVisibility,
+    setGeminiApiKey,
     prefixText,
     suffixText,
     selectedModel,
@@ -248,7 +252,24 @@ const CaptionEditor: React.FC = () => {
     fetchLMStudioModels,
     lmStudioAvailable,
     lmStudioModels,
-    getSystemPromptOptions
+    // Ollama
+    ollamaBaseUrl,
+    setOllamaBaseUrl,
+    checkOllamaConnection,
+    fetchOllamaModels,
+    ollamaAvailable,
+    ollamaModels,
+    // Remote models
+    openAiModels,
+    anthropicModels,
+    geminiModels,
+    fetchOpenAIModels,
+    fetchAnthropicModels,
+    fetchGeminiModels,
+    pinnedModels,
+    togglePinnedModel,
+    getSystemPromptOptions,
+    getSystemPromptText
   } = useAppStore();
 
   // Automatically fetch LM Studio models when LM Studio becomes available
@@ -257,11 +278,137 @@ const CaptionEditor: React.FC = () => {
       fetchLMStudioModels();
     }
   }, [lmStudioAvailable, fetchLMStudioModels]);
+
+  useEffect(() => {
+    if (ollamaAvailable) {
+      fetchOllamaModels();
+    }
+  }, [ollamaAvailable, fetchOllamaModels]);
   
   const [caption, setCaption] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPromptManagerOpen, setPromptManagerOpen] = useState(false);
+  const [modelFilter, setModelFilter] = useState('');
+  const [modelMenuAnchor, setModelMenuAnchor] = useState<null | HTMLElement>(null);
   const promptOptions = getSystemPromptOptions();
+  const pinnedSet = useMemo(() => new Set(pinnedModels), [pinnedModels]);
+  const modelOptions = useMemo(() => {
+    type Option = { value: string; label: string; provider: string };
+    const options: Option[] = [];
+    const addOption = (value: string, label: string, provider: string) => {
+      if (!value) return;
+      options.push({ value, label, provider });
+    };
+    addOption('gpt-4o-mini', 'OpenAI: gpt-4o-mini', 'openai');
+    addOption('gpt-4o', 'OpenAI: gpt-4o', 'openai');
+    addOption('claude-3-7-sonnet-20250219', 'Anthropic: Claude 3.7 Sonnet', 'anthropic');
+    addOption('gemini:gemini-1.5-flash', 'Gemini: 1.5 Flash', 'gemini');
+    addOption('gemini:gemini-1.5-pro', 'Gemini: 1.5 Pro', 'gemini');
+    openAiModels.forEach(model => addOption(model.id, `OpenAI: ${model.name}`, 'openai'));
+    anthropicModels.forEach(model => addOption(model.id, `Anthropic: ${model.name}`, 'anthropic'));
+    geminiModels.forEach(model => addOption(`gemini:${model.id}`, `Gemini: ${model.name}`, 'gemini'));
+    lmStudioModels.forEach(model => addOption(`lmstudio:${model.id}`, `LM Studio: ${model.name}`, 'lmstudio'));
+    ollamaModels.forEach(model => addOption(`ollama:${model.id}`, `Ollama: ${model.name}`, 'ollama'));
+    const seen = new Set<string>();
+    const normalized = options.filter(option => {
+      if (seen.has(option.value)) {
+        return false;
+      }
+      seen.add(option.value);
+      return true;
+    });
+    const filterValue = modelFilter.trim().toLowerCase();
+    const filtered = filterValue
+      ? normalized.filter(option =>
+          option.label.toLowerCase().includes(filterValue) ||
+          option.value.toLowerCase().includes(filterValue)
+        )
+      : [...normalized];
+    const ensureSelectedOption = (current: Option[]) => {
+      if (!selectedModel) {
+        return current;
+      }
+      if (current.some(option => option.value === selectedModel)) {
+        return current;
+      }
+      const fallback =
+        normalized.find(option => option.value === selectedModel) ||
+        {
+          value: selectedModel,
+          label: selectedModel,
+          provider: getProviderForModel(selectedModel)
+        };
+      return [fallback, ...current];
+    };
+    const hydrated = ensureSelectedOption(filtered);
+    const pinnedLookup = new Set(pinnedModels);
+    const labelForProvider = (provider: string) => {
+      switch (provider) {
+        case 'anthropic':
+          return 'Anthropic';
+        case 'lmstudio':
+          return 'LM Studio';
+        case 'ollama':
+          return 'Ollama';
+        case 'gemini':
+          return 'Gemini';
+        default:
+          return 'OpenAI';
+      }
+    };
+    const normalizedLabels = hydrated.map(option => {
+      if (option.label.includes(':')) {
+        return option;
+      }
+      return {
+        ...option,
+        label: `${labelForProvider(option.provider)}: ${option.label}`
+      };
+    });
+    normalizedLabels.sort((a, b) => {
+      const aPinned = pinnedLookup.has(a.value);
+      const bPinned = pinnedLookup.has(b.value);
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
+      return a.label.localeCompare(b.label);
+    });
+    return normalizedLabels;
+  }, [
+    selectedModel,
+    modelFilter,
+    openAiModels,
+    anthropicModels,
+    geminiModels,
+    lmStudioModels,
+    ollamaModels,
+    pinnedModels,
+    getProviderForModel
+  ]);
+  const selectedProvider = getProviderForModel(selectedModel);
+  const isProviderReady = useMemo(() => {
+    switch (selectedProvider) {
+      case 'openai':
+        return !!apiKey;
+      case 'anthropic':
+        return !!anthropicApiKey;
+      case 'gemini':
+        return !!geminiApiKey;
+      case 'lmstudio':
+        return selectedModel.startsWith('lmstudio:') && lmStudioAvailable;
+      case 'ollama':
+        return selectedModel.startsWith('ollama:') && ollamaAvailable;
+      default:
+        return false;
+    }
+  }, [
+    selectedProvider,
+    apiKey,
+    anthropicApiKey,
+    geminiApiKey,
+    lmStudioAvailable,
+    ollamaAvailable,
+    selectedModel
+  ]);
   
   // Update caption when selection changes
   useEffect(() => {
@@ -331,8 +478,8 @@ const CaptionEditor: React.FC = () => {
     };
     
     // Determine which service to use based on the selected model
-    const provider = getProviderForModel(selectedModel);
-    const promptText = useAppStore.getState().getSystemPromptText(selectedPromptStyle);
+    const provider = selectedProvider;
+    const promptText = getSystemPromptText(selectedPromptStyle);
     
     let rawCaption: string;
     let processedCaption: string;
@@ -372,6 +519,19 @@ const CaptionEditor: React.FC = () => {
       // Remove ollama: prefix and :latest suffix for model id
       const modelId = selectedModel.replace(/^ollama:/, '').replace(/:latest$/, '');
       rawCaption = await ollamaService.generateImageCaption(
+        imagePath,
+        modelId,
+        promptText,
+        streamHandler
+      );
+      processedCaption = rawCaption.trim().replace(/\.$/, '');
+    } else if (provider === 'gemini') {
+      if (!geminiApiKey) {
+        throw new Error('Gemini API key is required for Gemini models');
+      }
+      const geminiService = new GeminiService(geminiApiKey);
+      const modelId = selectedModel.replace(/^gemini:/, '').replace(/^models\//, '');
+      rawCaption = await geminiService.generateImageCaption(
         imagePath,
         modelId,
         promptText,
@@ -495,22 +655,36 @@ const CaptionEditor: React.FC = () => {
     } catch (error) {
       console.error('Error in caption generation:', error);
       const provider = getProviderForModel(selectedModel);
+      const providerLabel = (() => {
+        switch (provider) {
+          case 'anthropic':
+            return 'Anthropic';
+          case 'lmstudio':
+            return 'LM Studio';
+          case 'ollama':
+            return 'Ollama';
+          case 'gemini':
+            return 'Gemini';
+          default:
+            return 'OpenAI';
+        }
+      })();
+      const isCloudProvider = provider === 'openai' || provider === 'anthropic' || provider === 'gemini';
       let errorMessage = 'An error occurred during caption generation.';
       if (error instanceof Error) {
-        if (error.message.includes('429') || 
-            error.message.toLowerCase().includes('rate limit')) {
-          errorMessage = `${provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} API rate limit exceeded. Please try again later.`;
-        } else if (error.message.includes('401')) {
-          errorMessage = `Invalid API key. Please check your ${provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} API key.`;
-        } else if (error.message.includes('400')) {
+        if (isCloudProvider && (error.message.includes('429') || error.message.toLowerCase().includes('rate limit'))) {
+          errorMessage = `${providerLabel} API rate limit exceeded. Please try again later.`;
+        } else if (isCloudProvider && error.message.includes('401')) {
+          errorMessage = `Invalid API key. Please check your ${providerLabel} API key.`;
+        } else if (isCloudProvider && error.message.includes('400')) {
           const match = error.message.match(/400[^:]*: (.+)/);
           if (match && match[1]) {
             errorMessage = `Bad request: ${match[1]}`;
           } else {
-            errorMessage = `Bad request to ${provider === 'anthropic' ? 'Anthropic' : 'OpenAI'} API. Please try again.`;
+            errorMessage = `Bad request to ${providerLabel} API. Please try again.`;
           }
         } else {
-          errorMessage = `Error: ${error.message}`;
+          errorMessage = `${providerLabel} error: ${error.message}`;
         }
       }
       showAlertDialog(errorMessage, { type: 'error', title: 'Caption Generation Error' });
@@ -545,6 +719,9 @@ const CaptionEditor: React.FC = () => {
       return;
     } else if (provider === 'openai' && !apiKey) {
       showAlertDialog('Please enter an OpenAI API key first', { type: 'error', title: 'Missing API Key' });
+      return;
+    } else if (provider === 'gemini' && !geminiApiKey) {
+      showAlertDialog('Please enter a Gemini API key first', { type: 'error', title: 'Missing API Key' });
       return;
     }
     if (selectedImages.size === 0) {
@@ -1161,20 +1338,7 @@ const CaptionEditor: React.FC = () => {
           variant="contained"
           color="primary"
           onClick={handleGenerateCaption}
-          disabled={
-            isGenerating ||
-            (
-              getProviderForModel(selectedModel) === 'openai'
-                ? !apiKey
-                : getProviderForModel(selectedModel) === 'anthropic'
-                  ? !anthropicApiKey
-                  : getProviderForModel(selectedModel) === 'lmstudio'
-                    ? (!lmStudioAvailable || !selectedModel.startsWith('lmstudio:'))
-                    : getProviderForModel(selectedModel) === 'ollama'
-                      ? (!useAppStore.getState().ollamaAvailable || !selectedModel.startsWith('ollama:'))
-                      : true
-            )
-          }
+          disabled={isGenerating || !isProviderReady}
           fullWidth
           sx={{ 
             mb: 2,

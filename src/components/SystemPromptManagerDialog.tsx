@@ -180,10 +180,18 @@ const SystemPromptManagerDialog: React.FC<SystemPromptManagerDialogProps> = ({ o
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
       <DialogTitle>Manage System Prompts</DialogTitle>
-      <DialogContent dividers sx={{ minHeight: 420 }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
-            <Stack spacing={1.5} sx={{ height: '100%' }}>
+      <DialogContent
+        dividers
+        sx={{
+          minHeight: 420,
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+        }}
+      >
+        <Grid container spacing={3} sx={{ flexGrow: 1, minHeight: 0 }}>
+          <Grid item xs={12} md={4} sx={{ height: '100%', minHeight: 0 }}>
+            <Stack spacing={1.5} sx={{ height: '100%', minHeight: 0 }}>
               <Typography variant="body2" color="text.secondary">
                 Choose a prompt to preview or edit. Defaults are read-only.
               </Typography>
@@ -193,9 +201,10 @@ const SystemPromptManagerDialog: React.FC<SystemPromptManagerDialogProps> = ({ o
                   borderRadius: 1,
                   overflow: 'hidden',
                   flexGrow: 1,
+                  minHeight: 0,
                 }}
               >
-                <List dense disablePadding sx={{ maxHeight: 320, overflowY: 'auto' }}>
+                <List dense disablePadding sx={{ maxHeight: '100%', overflowY: 'auto' }}>
                   {promptOptions.map(prompt => (
                     <ListItemButton
                       key={prompt.name}
@@ -235,8 +244,8 @@ const SystemPromptManagerDialog: React.FC<SystemPromptManagerDialogProps> = ({ o
               </Button>
             </Stack>
           </Grid>
-          <Grid item xs={12} md={8}>
-            <Stack spacing={2} sx={{ height: '100%' }}>
+          <Grid item xs={12} md={8} sx={{ display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <Stack spacing={2} sx={{ height: '100%', minHeight: 0 }}>
               <Box>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                   {formState.isDefault ? 'Default Prompt' : formState.originalName ? 'Edit Custom Prompt' : 'New Custom Prompt'}
@@ -263,18 +272,36 @@ const SystemPromptManagerDialog: React.FC<SystemPromptManagerDialogProps> = ({ o
                 disabled={formState.isDefault}
                 InputProps={{ sx: { fontFamily: '"Karla", sans-serif' } }}
               />
-              <TextField
-                label="System Prompt"
-                value={formState.text}
-                onChange={handleInputChange('text')}
-                fullWidth
-                multiline
-                minRows={8}
-                disabled={formState.isDefault}
-                InputProps={{
-                  sx: { fontFamily: '"Inconsolata", monospace' },
-                }}
-              />
+              <Box sx={{ flexGrow: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                <TextField
+                  label="System Prompt"
+                  value={formState.text}
+                  onChange={handleInputChange('text')}
+                  fullWidth
+                  multiline
+                  minRows={8}
+                  sx={{
+                    flexGrow: 1,
+                    '& .MuiInputBase-root': {
+                      flexGrow: 1,
+                      height: '100%',
+                      alignItems: 'stretch',
+                    },
+                  }}
+                  InputProps={{
+                    readOnly: formState.isDefault,
+                    sx: {
+                      fontFamily: '"Inconsolata", monospace',
+                      '& .MuiInputBase-inputMultiline': {
+                        flexGrow: 1,
+                        height: '100% !important',
+                        overflowY: 'auto',
+                        fontFamily: '"Inconsolata", monospace',
+                      },
+                    },
+                  }}
+                />
+              </Box>
               {error && (
                 <Typography variant="body2" color="error">
                   {error}
