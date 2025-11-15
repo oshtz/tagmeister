@@ -65,32 +65,42 @@ const filterModelOptions = (
   );
 };
 
-const ModelPickerPopper: React.FC<PopperProps> = (props) => (
-  <Popper
-    {...props}
-    placement="bottom-end"
-    modifiers={[
-      {
-        name: 'offset',
-        options: {
-          offset: ({ reference, popper }: any) => {
-            const widthDiff = (popper?.width || 0) - (reference?.width || 0);
-            return [widthDiff > 0 ? -widthDiff : 0, 4];
+const ModelPickerPopper: React.FC<PopperProps> = (props) => {
+  const { anchorEl, style, ...otherProps } = props;
+
+  return (
+    <Popper
+      {...otherProps}
+      anchorEl={anchorEl}
+      placement="bottom-end"
+      modifiers={[
+        {
+          name: 'flip',
+          enabled: false,
+        },
+        {
+          name: 'offset',
+          options: {
+            offset: [0, 4],
           },
         },
-      },
-      {
-        name: 'preventOverflow',
-        options: {
-          boundary: 'viewport',
-          tether: false,
-          padding: 8,
-        },
-      },
-      { name: 'flip', enabled: false },
-    ]}
-  />
-);
+      ]}
+      style={{
+        ...style,
+        position: 'fixed',
+        inset: 'auto',
+      }}
+      sx={{
+        zIndex: (theme) => theme.zIndex.modal,
+        right: (anchorEl as HTMLElement)?.getBoundingClientRect?.()?.right
+          ? `${window.innerWidth - (anchorEl as HTMLElement).getBoundingClientRect().right}px !important`
+          : undefined,
+        left: 'auto !important',
+        maxWidth: 'calc(100vw - 32px)',
+      }}
+    />
+  );
+};
 
 // FontSizePopover component
 const FontSizePopover: React.FC<{
@@ -1014,9 +1024,11 @@ const CaptionEditor: React.FC = () => {
             slotProps={{
               paper: {
                 sx: {
-                  minWidth: { xs: '100%', sm: 360 },
+                  minWidth: 'min(360px, calc(100vw - 32px))',
                   maxWidth: 'calc(100vw - 32px)',
+                  width: 'auto',
                   transformOrigin: 'top right',
+                  right: 0,
                   '& .MuiAutocomplete-listbox': {
                     fontFamily: '"Inconsolata", monospace',
                     '&::-webkit-scrollbar': {

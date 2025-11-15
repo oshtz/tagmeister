@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Button,
@@ -18,6 +18,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import LinkIcon from '@mui/icons-material/Link';
 import { useAppStore, type ProviderId } from '../context/AppStore';
+import { open as openExternal } from '@tauri-apps/api/shell';
 
 interface SettingsPanelDialogProps {
   open: boolean;
@@ -57,7 +58,17 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
     showAlertDialog,
     enabledProviders,
     setProviderEnabled,
+    checkForUpdates,
+    isCheckingForUpdates,
+    updateAvailable,
+    currentVersion,
+    latestVersion,
+    updateReleaseUrl,
+    updateDownloadUrls,
+    updateError,
   } = useAppStore();
+
+  const [updateStatus, setUpdateStatus] = useState<{ message: string; tone: 'info' | 'error' | 'success' } | null>(null);
 
   const renderApiKeyField = (
     label: string,
@@ -252,6 +263,43 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
     }
   };
 
+  const handleManualUpdateCheck = async () => {
+    setUpdateStatus(null);
+    try {
+      const result = await checkForUpdates();
+      if (result.error) {
+        setUpdateStatus({ message: result.error, tone: 'error' });
+        return;
+      }
+      if (result.updateAvailable) {
+        setUpdateStatus({
+          message: `Version ${result.latestVersion ?? ''} is available with new updates.`,
+          tone: 'success',
+        });
+      } else {
+        setUpdateStatus({
+          message: 'You are running the latest available version.',
+          tone: 'info',
+        });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to check for updates.';
+      setUpdateStatus({ message, tone: 'error' });
+    }
+  };
+
+  const handleOpenReleaseLink = async (url?: string | null) => {
+    if (!url) {
+      return;
+    }
+    try {
+      await openExternal(url);
+    } catch (error) {
+      console.error('Failed to open release page:', error);
+      setUpdateStatus({ message: 'Unable to open the release page.', tone: 'error' });
+    }
+  };
+
   return (
     <Dialog
       open={open}
@@ -350,6 +398,80 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
           },
           'ollama'
         )}
+
+        <Divider sx={{ my: 3 }} />
+
+        <Typography variant="subtitle1" sx={{ fontFamily: '"Karla", sans-serif', mb: 2 }}>
+          Application Updates
+        </Typography>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <Typography variant="body2" sx={{ fontFamily: '"Inconsolata", monospace' }}>
+            Current version: {currentVersion ? `v${currentVersion}` : 'Unknown'}
+          </Typography>
+          <Typography variant="body2" sx={{ fontFamily: '"Inconsolata", monospace' }}>
+            Latest release: {latestVersion ? `v${latestVersion}` : 'Not checked yet'}
+          </Typography>
+          {updateStatus && (
+            <Typography
+              variant="body2"
+              sx={{
+                color:
+                  updateStatus.tone === 'error'
+                    ? 'error.main'
+                    : updateStatus.tone === 'success'
+                      ? 'success.main'
+                      : 'text.secondary',
+              }}
+            >
+              {updateStatus.message}
+            </Typography>
+          )}
+          {!updateStatus && updateError && (
+            <Typography variant="body2" color="error">
+              {updateError}
+            </Typography>
+          )}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+            <Button
+              variant="outlined"
+              onClick={handleManualUpdateCheck}
+              disabled={isCheckingForUpdates}
+            >
+              {isCheckingForUpdates ? 'Checking...' : 'Check for Updates'}
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => handleOpenReleaseLink(updateReleaseUrl)}
+              disabled={!updateReleaseUrl}
+            >
+              {updateAvailable ? 'Download Latest' : 'View Releases'}
+            </Button>
+          </Box>
+          {updateAvailable && (updateDownloadUrls?.windows || updateDownloadUrls?.macos) && (
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {updateDownloadUrls?.windows && (
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() => handleOpenReleaseLink(updateDownloadUrls.windows)}
+                >
+                  Windows Installer
+                </Button>
+              )}
+              {updateDownloadUrls?.macos && (
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() => handleOpenReleaseLink(updateDownloadUrls.macos)}
+                >
+                  macOS Installer
+                </Button>
+              )}
+            </Box>
+          )}
+        </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
         <Button onClick={onClose} variant="contained" color="primary">
