@@ -25,6 +25,8 @@ import {
   DialogActions,
   Menu
 } from '@mui/material';
+import Autocomplete from '@mui/material/Autocomplete';
+import type { FilterOptionsState } from '@mui/material/useAutocomplete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -46,6 +48,25 @@ import Slider from '@mui/material/Slider';
 import Tooltip from '@mui/material/Tooltip';
 import AlertDialog from './AlertDialog';
 import SystemPromptManagerDialog from './SystemPromptManagerDialog';
+
+type ModelOption = {
+  value: string;
+  label: string;
+  provider: string;
+};
+
+const filterModelOptions = (
+  options: ModelOption[],
+  { inputValue }: FilterOptionsState<ModelOption>
+) => {
+  const search = inputValue.trim().toLowerCase();
+  if (!search) {
+    return options;
+  }
+  return options.filter(option =>
+    option.label.toLowerCase().includes(search) || option.value.toLowerCase().includes(search)
+  );
+};
 
 // FontSizePopover component
 const FontSizePopover: React.FC<{
@@ -324,13 +345,6 @@ const CaptionEditor: React.FC = () => {
       seen.add(option.value);
       return true;
     });
-    const filterValue = modelFilter.trim().toLowerCase();
-    const filtered = filterValue
-      ? normalized.filter(option =>
-          option.label.toLowerCase().includes(filterValue) ||
-          option.value.toLowerCase().includes(filterValue)
-        )
-      : [...normalized];
     const ensureSelectedOption = (current: Option[]) => {
       if (!selectedModel) {
         return current;
@@ -347,7 +361,7 @@ const CaptionEditor: React.FC = () => {
         };
       return [fallback, ...current];
     };
-    const hydrated = ensureSelectedOption(filtered);
+    const hydrated = ensureSelectedOption(normalized);
     const pinnedLookup = new Set(pinnedModels);
     const labelForProvider = (provider: string) => {
       switch (provider) {
@@ -384,7 +398,6 @@ const CaptionEditor: React.FC = () => {
     return normalizedLabels;
   }, [
     selectedModel,
-    modelFilter,
     openAiModels,
     anthropicModels,
     geminiModels,
@@ -394,6 +407,10 @@ const CaptionEditor: React.FC = () => {
     pinnedModels,
     getProviderForModel
   ]);
+  const selectedModelOption = useMemo(
+    () => modelOptions.find(option => option.value === selectedModel) ?? null,
+    [modelOptions, selectedModel]
+  );
   const selectedProvider = getProviderForModel(selectedModel);
   const isProviderReady = useMemo(() => {
     switch (selectedProvider) {
@@ -1370,17 +1387,40 @@ const CaptionEditor: React.FC = () => {
         </AccordionDetails>
       </Accordion>
       <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography 
+        <Typography
           variant="h6"
           sx={{ fontFamily: '"Karla", sans-serif' }}
         >
           Auto-Captioner
         </Typography>
-        {/* Font size popover control */}
-        <FontSizePopover
-          fontSize={fontSize}
-          adjustFontSize={adjustFontSize}
-        />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Font size popover control */}
+          <FontSizePopover
+            fontSize={fontSize}
+            adjustFontSize={adjustFontSize}
+          />
+          <Tooltip title="Refresh available models">
+            <IconButton
+              size="small"
+              onClick={handleModelMenuOpen}
+              aria-label="Refresh available models"
+              sx={{
+                borderRadius: '12px',
+                padding: '6px',
+                backgroundColor: theme => theme.palette.mode === 'dark'
+                  ? 'rgba(255,255,255,0.08)'
+                  : 'rgba(0,0,0,0.04)',
+                '&:hover': {
+                  backgroundColor: theme => theme.palette.mode === 'dark'
+                    ? 'rgba(255,255,255,0.12)'
+                    : 'rgba(0,0,0,0.08)'
+                }
+              }}
+            >
+              <RefreshIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
       
       <Grid container spacing={2} sx={{ mb: 2 }}>
@@ -1425,83 +1465,105 @@ const CaptionEditor: React.FC = () => {
           </Box>
         </Grid>
         <Grid item xs={6}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-            <Typography 
-              variant="caption"
-              sx={{ fontFamily: '"Karla", sans-serif' }}
-            >
-              Model
-            </Typography>
-            <Tooltip title="Refresh available models">
-              <IconButton size="small" onClick={handleModelMenuOpen} sx={{ p: 0.5 }}>
-                <RefreshIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-          <TextField
+          <Autocomplete
             fullWidth
             size="small"
-            value={modelFilter}
-            onChange={(e) => setModelFilter(e.target.value)}
-            placeholder="Filter models"
-            variant="standard"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <FilterAltIcon fontSize="small" />
-                </InputAdornment>
-              ),
-              sx: {
-                fontFamily: '"Inconsolata", monospace'
+            disableClearable
+            options={modelOptions}
+            value={selectedModelOption}
+            onChange={(_, newValue) => {
+              if (newValue) {
+                setModel(newValue.value);
+              }
+            }}
+            inputValue={modelFilter}
+            onInputChange={(_, newValue) => setModelFilter(newValue)}
+            getOptionLabel={(option) => option.label}
+            isOptionEqualToValue={(option, value) => option.value === value.value}
+            filterOptions={filterModelOptions}
+            noOptionsText="No models available"
+            renderOption={(props, option) => (
+              <li {...props}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <Typography component="span" sx={{ fontFamily: '"Inconsolata", monospace' }}>
+                    {option.label}
+                  </Typography>
+                  <Tooltip title={pinnedSet.has(option.value) ? 'Unpin model' : 'Pin model'}>
+                    <IconButton
+                      size="small"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        togglePinnedModel(option.value);
+                      }}
+                    >
+                      {pinnedSet.has(option.value)
+                        ? <StarIcon fontSize="small" color="warning" />
+                        : <StarBorderIcon fontSize="small" />}
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+              </li>
+            )}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                variant="standard"
+                placeholder="Select or filter models"
+                InputProps={{
+                  ...params.InputProps,
+                  startAdornment: (
+                    <>
+                      <FilterAltIcon fontSize="small" sx={{ mr: 1 }} />
+                      {params.InputProps.startAdornment}
+                    </>
+                  ),
+                  sx: { fontFamily: '"Inconsolata", monospace' }
+                }}
+                inputProps={{
+                  ...params.inputProps,
+                  style: {
+                    ...(params.inputProps?.style || {}),
+                    fontFamily: '"Inconsolata", monospace'
+                  }
+                }}
+              />
+            )}
+            slotProps={{
+              paper: {
+                sx: {
+                  '& .MuiAutocomplete-listbox': {
+                    fontFamily: '"Inconsolata", monospace',
+                    '&::-webkit-scrollbar': {
+                      width: '8px',
+                      backgroundColor: 'transparent'
+                    },
+                    '&::-webkit-scrollbar-track': {
+                      backgroundColor: theme =>
+                        theme.palette.mode === 'dark'
+                          ? 'rgba(255, 255, 255, 0.05)'
+                          : 'rgba(0, 0, 0, 0.05)',
+                      borderRadius: '4px'
+                    },
+                    '&::-webkit-scrollbar-thumb': {
+                      backgroundColor: theme =>
+                        theme.palette.mode === 'dark'
+                          ? 'rgba(0, 150, 136, 0.7)'
+                          : 'rgba(0, 150, 136, 0.6)',
+                      borderRadius: '4px',
+                      '&:hover': {
+                        backgroundColor: theme =>
+                          theme.palette.mode === 'dark'
+                            ? 'rgba(0, 150, 136, 0.9)'
+                            : 'rgba(0, 150, 136, 0.8)'
+                      }
+                    }
+                  }
+                }
               }
             }}
             sx={{ mb: 1 }}
           />
-          <FormControl fullWidth size="small">
-            <Select
-              value={selectedModel}
-              onChange={(e) => setModel(e.target.value)}
-              sx={{ fontFamily: '"Inconsolata", monospace' }}
-              renderValue={(value) => {
-                const option = modelOptions.find(opt => opt.value === value);
-                return option ? option.label : value;
-              }}
-            >
-              {modelOptions.length === 0 ? (
-                <MenuItem value="" disabled sx={{ fontFamily: '"Inconsolata", monospace' }}>
-                  No models available
-                </MenuItem>
-              ) : (
-                modelOptions.map(option => (
-                  <MenuItem
-                    key={option.value}
-                    value={option.value}
-                    sx={{ fontFamily: '"Inconsolata", monospace' }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-                      <Typography component="span" sx={{ fontFamily: '"Inconsolata", monospace' }}>
-                        {option.label}
-                      </Typography>
-                      <Tooltip title={pinnedSet.has(option.value) ? 'Unpin model' : 'Pin model'}>
-                        <IconButton
-                          size="small"
-                          onClick={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            togglePinnedModel(option.value);
-                          }}
-                        >
-                          {pinnedSet.has(option.value)
-                            ? <StarIcon fontSize="small" color="warning" />
-                            : <StarBorderIcon fontSize="small" />}
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  </MenuItem>
-                ))
-              )}
-            </Select>
-          </FormControl>
         </Grid>
       </Grid>
 
