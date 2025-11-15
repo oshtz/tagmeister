@@ -116,7 +116,7 @@ interface AppState {
   setCurrentDirectory: (path: string) => Promise<void>;
   toggleTheme: () => void;
   setModel: (model: string) => void;
-  getProviderForModel: (model: string) => 'openai' | 'anthropic' | 'lmstudio' | 'ollama' | 'gemini';
+  getProviderForModel: (model: string) => 'openai' | 'anthropic' | 'lmstudio' | 'ollama' | 'openrouter' | 'gemini';
   setFontSize: (size: number) => void;
   adjustFontSize: (adjustment: number) => void;
   selectAll: () => void;
@@ -163,6 +163,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   apiKeyVisible: false,
   anthropicApiKey: '',
   anthropicApiKeyVisible: false,
+  openRouterApiKey: '',
+  openRouterApiKeyVisible: false,
   openRouterApiKey: '',
   openRouterApiKeyVisible: false,
   geminiApiKey: '',

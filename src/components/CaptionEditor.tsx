@@ -455,7 +455,7 @@ const CaptionEditor: React.FC = () => {
     setModelMenuAnchor(event.currentTarget);
   };
   const handleRefreshModels = async (
-    provider: 'openai' | 'anthropic' | 'gemini' | 'lmstudio' | 'ollama'
+    provider: 'openai' | 'anthropic' | 'gemini' | 'openrouter' | 'lmstudio' | 'ollama'
   ) => {
     handleModelMenuClose();
     const providerName = {
@@ -487,6 +487,13 @@ const CaptionEditor: React.FC = () => {
         }
         await fetchGeminiModels();
         showAlertDialog('Gemini model list updated.', { type: 'info', title: 'Models Refreshed' });
+      } else if (provider === 'openrouter') {
+        if (!openRouterApiKey) {
+          showAlertDialog('Please enter an OpenRouter API key first.', { type: 'error', title: 'Missing API Key' });
+          return;
+        }
+        await fetchOpenRouterModels();
+        showAlertDialog('OpenRouter model list updated.', { type: 'info', title: 'Models Refreshed' });
       } else if (provider === 'lmstudio') {
         const ok = await checkLMStudioConnection();
         if (!ok) {
@@ -755,11 +762,13 @@ const CaptionEditor: React.FC = () => {
             return 'Ollama';
           case 'gemini':
             return 'Gemini';
+          case 'openrouter':
+            return 'OpenRouter';
           default:
             return 'OpenAI';
         }
       })();
-      const isCloudProvider = provider === 'openai' || provider === 'anthropic' || provider === 'gemini';
+      const isCloudProvider = provider === 'openai' || provider === 'anthropic' || provider === 'gemini' || provider === 'openrouter';
       let errorMessage = 'An error occurred during caption generation.';
       if (error instanceof Error) {
         if (isCloudProvider && (error.message.includes('429') || error.message.toLowerCase().includes('rate limit'))) {
@@ -1038,6 +1047,75 @@ const CaptionEditor: React.FC = () => {
                     }}
                   >
                     {anthropicApiKeyVisible ? <VisibilityOffIcon /> : <VisibilityIcon color="primary" />}
+                  </IconButton>
+                </InputAdornment>
+              )
+            }}
+            sx={theme => ({
+              boxShadow: 'none !important', 
+              filter: 'none !important',
+              mb: 2,
+              ...(theme.palette.mode === 'light' && {
+                '& .MuiOutlinedInput-notchedOutline': {
+                  boxShadow: 'none !important',
+                  border: 'none !important'
+                },
+                '& .MuiInputBase-root': {
+                  boxShadow: 'none !important',
+                  border: 'none !important'
+                }
+              })
+            })}
+          />
+
+          {/* OpenRouter API Key */}
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              display: 'block',
+              mb: 1,
+              fontFamily: '"Karla", sans-serif'
+            }}
+          >
+            OpenRouter API Key
+          </Typography>
+          <TextField
+            fullWidth
+            size="small"
+            type={openRouterApiKeyVisible ? 'text' : 'password'}
+            value={openRouterApiKey}
+            onChange={(e) => setOpenRouterApiKey(e.target.value)}
+            placeholder="Enter OpenRouter API Key"
+            variant="standard" 
+            InputLabelProps={{
+              sx: { boxShadow: 'none !important' }
+            }}
+            InputProps={{
+              sx: theme => ({
+                fontFamily: '"Inconsolata", monospace',
+                boxShadow: 'none !important',
+                filter: 'none !important',
+                ...(theme.palette.mode === 'light' && {
+                  background: 'transparent',
+                  '& svg': { filter: 'none !important' }
+                }),
+                '& fieldset': {
+                  boxShadow: 'none !important',
+                  border: 'none !important'
+                }
+              }),
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={toggleOpenRouterApiKeyVisibility}
+                    edge="end"
+                    size="small"
+                    sx={{
+                      boxShadow: 'none !important',
+                      border: 'none'
+                    }}
+                  >
+                    {openRouterApiKeyVisible ? <VisibilityOffIcon /> : <VisibilityIcon color="primary" />}
                   </IconButton>
                 </InputAdornment>
               )
@@ -1435,6 +1513,7 @@ const CaptionEditor: React.FC = () => {
         <MenuItem onClick={() => handleRefreshModels('openai')}>Refresh OpenAI Models</MenuItem>
         <MenuItem onClick={() => handleRefreshModels('anthropic')}>Refresh Anthropic Models</MenuItem>
         <MenuItem onClick={() => handleRefreshModels('gemini')}>Refresh Gemini Models</MenuItem>
+        <MenuItem onClick={() => handleRefreshModels('openrouter')}>Refresh OpenRouter Models</MenuItem>
         <MenuItem onClick={() => handleRefreshModels('lmstudio')}>Refresh LM Studio Models</MenuItem>
         <MenuItem onClick={() => handleRefreshModels('ollama')}>Refresh Ollama Models</MenuItem>
       </Menu>
