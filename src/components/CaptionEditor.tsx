@@ -22,7 +22,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions
+  DialogActions,
+  Menu
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
@@ -32,9 +33,14 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import LinkIcon from '@mui/icons-material/Link';
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import FilterAltIcon from '@mui/icons-material/FilterAlt';
+import StarIcon from '@mui/icons-material/Star';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
 import { OpenAIService } from '../services/OpenAIService';
 import { AnthropicService } from '../services/AnthropicService';
 import { LMStudioService } from '../services/LMStudioService';
+import { GeminiService } from '../services/GeminiService';
 import Popover from '@mui/material/Popover';
 import Slider from '@mui/material/Slider';
 import Tooltip from '@mui/material/Tooltip';
