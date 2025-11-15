@@ -178,12 +178,25 @@ const SystemPromptManagerDialog: React.FC<SystemPromptManagerDialogProps> = ({ o
   const canUsePrompt = activePromptName !== NEW_PROMPT_ID || !!formState.originalName;
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+    <Dialog
+      open={open}
+      onClose={onClose}
+      fullWidth
+      maxWidth="md"
+      PaperProps={{
+        sx: {
+          height: { xs: '85vh', md: '75vh' },
+          maxHeight: '90vh',
+          width: '100%',
+        },
+      }}
+    >
       <DialogTitle>Manage System Prompts</DialogTitle>
       <DialogContent
         dividers
         sx={{
           minHeight: 420,
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',

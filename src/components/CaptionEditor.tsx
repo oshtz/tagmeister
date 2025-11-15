@@ -499,7 +499,6 @@ const CaptionEditor: React.FC = () => {
       processedCaption = anthropicService.processCaption(rawCaption).trim();
     } else if (provider === 'lmstudio') {
       // Use LM Studio service
-      const { lmStudioBaseUrl } = useAppStore.getState();
       const lmstudioService = new LMStudioService(lmStudioBaseUrl);
       // Remove lmstudio: prefix for model id
       const modelId = selectedModel.replace(/^lmstudio:/, '');
@@ -513,7 +512,6 @@ const CaptionEditor: React.FC = () => {
       processedCaption = rawCaption.trim().replace(/\.$/, '');
     } else if (provider === 'ollama') {
       // Use Ollama service
-      const { ollamaBaseUrl } = useAppStore.getState();
       const { OllamaService } = await import('../services/OllamaService');
       const ollamaService = new OllamaService(ollamaBaseUrl);
       // Remove ollama: prefix and :latest suffix for model id
@@ -1062,8 +1060,8 @@ const CaptionEditor: React.FC = () => {
             <TextField
               fullWidth
               size="small"
-              value={useAppStore.getState().ollamaBaseUrl}
-              onChange={(e) => useAppStore.getState().setOllamaBaseUrl(e.target.value)}
+              value={ollamaBaseUrl}
+              onChange={(e) => setOllamaBaseUrl(e.target.value)}
               placeholder="http://localhost:11434"
               variant="standard"
               InputLabelProps={{
@@ -1104,9 +1102,9 @@ const CaptionEditor: React.FC = () => {
                 size="small"
                 sx={{ ml: 1 }}
                 onClick={async () => {
-                  const ok = await useAppStore.getState().checkOllamaConnection();
+                  const ok = await checkOllamaConnection();
                   if (ok) {
-                    await useAppStore.getState().fetchOllamaModels();
+                    await fetchOllamaModels();
                     showAlertDialog('Ollama connected and models loaded.', { type: 'info', title: 'Ollama Connected' });
                   } else {
                     showAlertDialog('Could not connect to Ollama at the specified URL.', { type: 'error', title: 'Ollama Connection Failed' });
@@ -1117,12 +1115,12 @@ const CaptionEditor: React.FC = () => {
               </IconButton>
             </Tooltip>
           </Box>
-          {useAppStore.getState().ollamaAvailable && useAppStore.getState().ollamaModels.length === 0 && (
+          {ollamaAvailable && ollamaModels.length === 0 && (
             <Typography variant="caption" color="warning.main">
               No vision-capable models found on Ollama.
             </Typography>
           )}
-          {!useAppStore.getState().ollamaAvailable && (
+          {!ollamaAvailable && (
             <Typography variant="caption" color="error.main">
               Ollama not available or not running at the specified URL.
             </Typography>
