@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react';
 import { useAppStore } from '../context/AppStore';
 import { 
   Box, 
@@ -31,6 +31,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import LinkIcon from '@mui/icons-material/Link';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import { OpenAIService } from '../services/OpenAIService';
 import { AnthropicService } from '../services/AnthropicService';
 import { LMStudioService } from '../services/LMStudioService';
@@ -38,6 +39,7 @@ import Popover from '@mui/material/Popover';
 import Slider from '@mui/material/Slider';
 import Tooltip from '@mui/material/Tooltip';
 import AlertDialog from './AlertDialog';
+import SystemPromptManagerDialog from './SystemPromptManagerDialog';
 
 // FontSizePopover component
 const FontSizePopover: React.FC<{
@@ -239,7 +241,8 @@ const CaptionEditor: React.FC = () => {
     checkLMStudioConnection,
     fetchLMStudioModels,
     lmStudioAvailable,
-    lmStudioModels
+    lmStudioModels,
+    getSystemPromptOptions
   } = useAppStore();
 
   // Automatically fetch LM Studio models when LM Studio becomes available
@@ -251,6 +254,8 @@ const CaptionEditor: React.FC = () => {
   
   const [caption, setCaption] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isPromptManagerOpen, setPromptManagerOpen] = useState(false);
+  const promptOptions = getSystemPromptOptions();
   
   // Update caption when selection changes
   useEffect(() => {
@@ -321,6 +326,7 @@ const CaptionEditor: React.FC = () => {
     
     // Determine which service to use based on the selected model
     const provider = getProviderForModel(selectedModel);
+    const promptText = useAppStore.getState().getSystemPromptText(selectedPromptStyle);
     
     let rawCaption: string;
     let processedCaption: string;
@@ -334,7 +340,7 @@ const CaptionEditor: React.FC = () => {
       rawCaption = await anthropicService.generateImageCaption(
         imagePath,
         selectedModel,
-        selectedPromptStyle,
+        promptText,
         streamHandler
       );
       processedCaption = anthropicService.processCaption(rawCaption).trim();
@@ -342,13 +348,6 @@ const CaptionEditor: React.FC = () => {
       // Use LM Studio service
       const { lmStudioBaseUrl } = useAppStore.getState();
       const lmstudioService = new LMStudioService(lmStudioBaseUrl);
-      // Use the same prompt logic as OpenAI
-      let promptText: string;
-      if (selectedPromptStyle === 'SDXL (Booru Tags)') {
-        promptText = "Generate a list of tags for this image in the style of Booru image boards and SDXL prompts. Focus on describing the visual elements, subjects, objects, settings, colors, lighting, composition, artistic style, and other relevant attributes. Format the output as a comma-separated list of tags without numbering or bullet points. Be specific and detailed, but keep each tag concise (1-3 words typically). Include tags for the main subject, background elements, colors, lighting, composition, style, medium, and any notable features. Do not include explanatory text or categorization headers - just provide the raw comma-separated tag list. Make sure to include mostly single-word tags, you can use some double-word tags if needed but mostly single word if possible.";
-      } else {
-        promptText = "Describe this image in one concise paragraph, starting immediately with the primary subject (e.g., 'Watch,' 'Landscape,' 'Person'). Focus on key elements, their relationships, and notable details. Be specific and direct, avoiding any introductory phrases like 'The image shows' or 'I can see.' Prioritize the most important aspects and describe them factually. Identify the main subject quickly and accurately, noting its dominant characteristics such as size, color, shape, or position. For multiple elements, describe their spatial relationships. Include relevant details about composition, color schemes, lighting, and textures. Mention any actions, movements, functions, or unique features of objects, and appearances or behaviors of people or animals. Include any visible text, logos, or recognizable symbols. Describe what you see literally, without interpreting the image's style (e.g., don't use terms like 'stylized,' 'illustration,' or mention artistic techniques). Treat every subject as a real object or scene, not as a representation. Use varied and precise vocabulary to create a vivid description while maintaining a neutral tone. Avoid subjective interpretations unless crucial to understanding the image's content.";
-      }
       // Remove lmstudio: prefix for model id
       const modelId = selectedModel.replace(/^lmstudio:/, '');
       rawCaption = await lmstudioService.generateImageCaption(
@@ -364,13 +363,6 @@ const CaptionEditor: React.FC = () => {
       const { ollamaBaseUrl } = useAppStore.getState();
       const { OllamaService } = await import('../services/OllamaService');
       const ollamaService = new OllamaService(ollamaBaseUrl);
-      // Use the same prompt logic as LM Studio
-      let promptText: string;
-      if (selectedPromptStyle === 'SDXL (Booru Tags)') {
-        promptText = "Generate a list of tags for this image in the style of Booru image boards and SDXL prompts. Focus on describing the visual elements, subjects, objects, settings, colors, lighting, composition, artistic style, and other relevant attributes. Format the output as a comma-separated list of tags without numbering or bullet points. Be specific and detailed, but keep each tag concise (1-3 words typically). Include tags for the main subject, background elements, colors, lighting, composition, style, medium, and any notable features. Do not include explanatory text or categorization headers - just provide the raw comma-separated tag list. Make sure to include mostly single-word tags, you can use some double-word tags if needed but mostly single word if possible.";
-      } else {
-        promptText = "Describe this image in one concise paragraph, starting immediately with the primary subject (e.g., 'Watch,' 'Landscape,' 'Person'). Focus on key elements, their relationships, and notable details. Be specific and direct, avoiding any introductory phrases like 'The image shows' or 'I can see.' Prioritize the most important aspects and describe them factually. Identify the main subject quickly and accurately, noting its dominant characteristics such as size, color, shape, or position. For multiple elements, describe their spatial relationships. Include relevant details about composition, color schemes, lighting, and textures. Mention any actions, movements, functions, or unique features of objects, and appearances or behaviors of people or animals. Include any visible text, logos, or recognizable symbols. Describe what you see literally, without interpreting the image's style (e.g., don't use terms like 'stylized,' 'illustration,' or mention artistic techniques). Treat every subject as a real object or scene, not as a representation. Use varied and precise vocabulary to create a vivid description while maintaining a neutral tone. Avoid subjective interpretations unless crucial to understanding the image's content.";
-      }
       // Remove ollama: prefix and :latest suffix for model id
       const modelId = selectedModel.replace(/^ollama:/, '').replace(/:latest$/, '');
       rawCaption = await ollamaService.generateImageCaption(
@@ -389,7 +381,7 @@ const CaptionEditor: React.FC = () => {
       rawCaption = await openAiService.generateImageCaption(
         imagePath,
         selectedModel,
-        selectedPromptStyle,
+        promptText,
         streamHandler
       );
       processedCaption = openAiService.processCaption(rawCaption).trim();
@@ -570,19 +562,26 @@ const CaptionEditor: React.FC = () => {
   
   if (!selectedImage) {
     return (
-      <Box sx={{ p: 2, textAlign: 'center' }}>
-        <Typography 
-          variant="body1"
-          sx={{ fontFamily: '"Inconsolata", monospace' }}
-        >
-          Select an image
-        </Typography>
-      </Box>
+      <>
+        <Box sx={{ p: 2, textAlign: 'center' }}>
+          <Typography 
+            variant="body1"
+            sx={{ fontFamily: '"Inconsolata", monospace' }}
+          >
+            Select an image
+          </Typography>
+        </Box>
+        <SystemPromptManagerDialog
+          open={isPromptManagerOpen}
+          onClose={() => setPromptManagerOpen(false)}
+        />
+      </>
     );
   }
   
   return (
-    <Paper 
+    <>
+      <Paper 
       elevation={0} 
       sx={{ 
         height: '100%', 
@@ -963,18 +962,44 @@ const CaptionEditor: React.FC = () => {
       
       <Grid container spacing={2} sx={{ mb: 2 }}>
         <Grid item xs={6}>
-          <FormControl fullWidth size="small">
-            <InputLabel sx={{ fontFamily: '"Karla", sans-serif' }}>Caption Style</InputLabel>
-            <Select
-              value={selectedPromptStyle}
-              label="Caption Style"
-              onChange={(e) => setPromptStyle(e.target.value)}
-              sx={{ fontFamily: '"Inconsolata", monospace' }}
-            >
-              <MenuItem value="FLUX (Natural Language)" sx={{ fontFamily: '"Inconsolata", monospace' }}>FLUX (Natural Language)</MenuItem>
-              <MenuItem value="SDXL (Booru Tags)" sx={{ fontFamily: '"Inconsolata", monospace' }}>SDXL (Booru Tags)</MenuItem>
-            </Select>
-          </FormControl>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <FormControl fullWidth size="small" sx={{ flexGrow: 1 }}>
+              <InputLabel sx={{ fontFamily: '"Karla", sans-serif' }}>Caption Style</InputLabel>
+              <Select
+                value={selectedPromptStyle}
+                label="Caption Style"
+                onChange={(e) => setPromptStyle(e.target.value)}
+                sx={{ fontFamily: '"Inconsolata", monospace' }}
+              >
+                {promptOptions.map(option => (
+                  <MenuItem
+                    key={option.name}
+                    value={option.name}
+                    sx={{ fontFamily: '"Inconsolata", monospace' }}
+                  >
+                    {option.name}
+                    {!option.isDefault && ' (Custom)'}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Tooltip title="Manage system prompts">
+              <IconButton
+                color="primary"
+                size="small"
+                onClick={() => setPromptManagerOpen(true)}
+                sx={{
+                  border: theme => `1px solid ${theme.palette.divider}`,
+                  borderRadius: 1,
+                  height: '40px',
+                  width: '40px'
+                }}
+                aria-label="Manage system prompts"
+              >
+                <ManageAccountsIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
         </Grid>
         <Grid item xs={6}>
           <FormControl fullWidth size="small">
@@ -1234,7 +1259,12 @@ const CaptionEditor: React.FC = () => {
           }}
         />
       </Box>
-    </Paper>
+      </Paper>
+      <SystemPromptManagerDialog
+        open={isPromptManagerOpen}
+        onClose={() => setPromptManagerOpen(false)}
+      />
+    </>
   );
 };
 

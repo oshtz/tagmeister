@@ -4,11 +4,31 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { readTextFile, writeTextFile, readDir, exists, create as createFs } from '@tauri-apps/plugin-fs';
 import { basename, extname, dirname, join, sep } from '@tauri-apps/api/path';
 import { appDataDir } from '@tauri-apps/api/path';
+import { DEFAULT_SYSTEM_PROMPTS, SystemPromptDefinition, getAllSystemPrompts, getSystemPromptByName } from '../utils/systemPrompts';
 
 // Define a type for our file entries
 type FileInfo = {
   path: string;
   name: string;
+};
+
+type ProviderModel = {
+  id: string;
+  name: string;
+};
+
+const OPENAI_VISION_MODEL_HINTS = ['gpt-4o', 'gpt-4.1', 'omni', 'o1'];
+const GEMINI_VISION_MODEL_HINTS = ['gemini-1.5', 'gemini-pro-vision'];
+
+const dedupeModels = (models: ProviderModel[]): ProviderModel[] => {
+  const seen = new Set<string>();
+  return models.filter(model => {
+    if (seen.has(model.id)) {
+      return false;
+    }
+    seen.add(model.id);
+    return true;
+  });
 };
 
 interface Caption {
@@ -32,6 +52,8 @@ interface AppState {
   apiKeyVisible: boolean;
   anthropicApiKey: string; // Anthropic API key
   anthropicApiKeyVisible: boolean;
+  geminiApiKey: string;
+  geminiApiKeyVisible: boolean;
   prefixText: string;
   suffixText: string;
   selectedModel: string;
@@ -40,16 +62,27 @@ interface AppState {
   fontSize: number;
   leftPanelWidth: number;
   rightPanelWidth: number;
+  customSystemPrompts: SystemPromptDefinition[];
+  getSystemPromptOptions: () => SystemPromptDefinition[];
+  getSystemPromptText: (name: string) => string;
+  saveCustomSystemPrompt: (prompt: { name: string; description?: string; text: string; originalName?: string }) => void;
+  deleteCustomSystemPrompt: (name: string) => void;
 
   // LM Studio integration
   lmStudioBaseUrl: string;
   lmStudioAvailable: boolean;
-  lmStudioModels: Array<{ id: string; name: string }>;
+  lmStudioModels: ProviderModel[];
 
   // Ollama integration
   ollamaBaseUrl: string;
   ollamaAvailable: boolean;
-  ollamaModels: Array<{ id: string; name: string }>;
+  ollamaModels: ProviderModel[];
+
+  // Remote model catalogs
+  openAiModels: ProviderModel[];
+  anthropicModels: ProviderModel[];
+  geminiModels: ProviderModel[];
+  pinnedModels: string[];
 
   // Processing state
   isInitialized: boolean;
@@ -63,6 +96,7 @@ interface AppState {
   // Actions
   toggleApiKeyVisibility: () => void;
   toggleAnthropicApiKeyVisibility: () => void;
+  toggleGeminiApiKeyVisibility: () => void;
   setProcessingState: (isProcessing: boolean, total?: number) => void;
   incrementProcessedCount: () => void;
   setShouldInterrupt: (shouldInterrupt: boolean) => void;
@@ -73,10 +107,11 @@ interface AppState {
   setSelectedImage: (path: string) => void;
   setApiKey: (key: string) => void;
   setAnthropicApiKey: (key: string) => void;
+  setGeminiApiKey: (key: string) => void;
   setCurrentDirectory: (path: string) => Promise<void>;
   toggleTheme: () => void;
   setModel: (model: string) => void;
-  getProviderForModel: (model: string) => 'openai' | 'anthropic' | 'lmstudio' | 'ollama';
+  getProviderForModel: (model: string) => 'openai' | 'anthropic' | 'lmstudio' | 'ollama' | 'gemini';
   setFontSize: (size: number) => void;
   adjustFontSize: (adjustment: number) => void;
   selectAll: () => void;
@@ -96,6 +131,12 @@ interface AppState {
   setOllamaBaseUrl: (url: string) => void;
   checkOllamaConnection: () => Promise<boolean>;
   fetchOllamaModels: () => Promise<void>;
+
+  // Remote model actions
+  fetchOpenAIModels: () => Promise<void>;
+  fetchAnthropicModels: () => Promise<void>;
+  fetchGeminiModels: () => Promise<void>;
+  togglePinnedModel: (modelId: string) => void;
   
   // Helper methods
   loadSettings: () => Promise<void>;
@@ -116,6 +157,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   apiKeyVisible: false,
   anthropicApiKey: '',
   anthropicApiKeyVisible: false,
+  geminiApiKey: '',
+  geminiApiKeyVisible: false,
   prefixText: '',
   suffixText: '',
   selectedModel: 'gpt-4o-mini',
@@ -124,6 +167,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   fontSize: 14.0,
   leftPanelWidth: 0.2,
   rightPanelWidth: 0.2,
+  customSystemPrompts: [],
   // LM Studio
   lmStudioBaseUrl: 'http://localhost:1234/v1',
   lmStudioAvailable: false,
@@ -133,6 +177,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   ollamaBaseUrl: 'http://localhost:11434',
   ollamaAvailable: false,
   ollamaModels: [],
+
+  // Remote models & pinned list
+  openAiModels: [],
+  anthropicModels: [],
+  geminiModels: [],
+  pinnedModels: [],
 
   isInitialized: false,
   isProcessing: false,
@@ -144,6 +194,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Actions
   toggleApiKeyVisibility: () => set(state => ({ apiKeyVisible: !state.apiKeyVisible })),
   toggleAnthropicApiKeyVisibility: () => set(state => ({ anthropicApiKeyVisible: !state.anthropicApiKeyVisible })),
+  toggleGeminiApiKeyVisibility: () => set(state => ({ geminiApiKeyVisible: !state.geminiApiKeyVisible })),
   
   setProcessingState: (isProcessing, total = 0) => set({
     isProcessing,
@@ -170,6 +221,63 @@ export const useAppStore = create<AppState>((set, get) => ({
     if (get().currentDirectory) {
       await get().loadImagesFromDirectory();
     }
+    (async () => {
+      try {
+        const { 
+          ollamaBaseUrl, 
+          lmStudioBaseUrl, 
+          apiKey, 
+          anthropicApiKey, 
+          geminiApiKey,
+          openAiModels,
+          anthropicModels,
+          geminiModels
+        } = get();
+        if (ollamaBaseUrl) {
+          try {
+            const ok = await get().checkOllamaConnection();
+            if (ok) {
+              await get().fetchOllamaModels();
+            }
+          } catch (error) {
+            console.error('Failed to refresh Ollama models during init:', error);
+          }
+        }
+        if (lmStudioBaseUrl) {
+          try {
+            const ok = await get().checkLMStudioConnection();
+            if (ok) {
+              await get().fetchLMStudioModels();
+            }
+          } catch (error) {
+            console.error('Failed to refresh LM Studio models during init:', error);
+          }
+        }
+        if (apiKey && openAiModels.length === 0) {
+          try {
+            await get().fetchOpenAIModels();
+          } catch (error) {
+            console.error('Failed to refresh OpenAI models during init:', error);
+          }
+        }
+        if (anthropicApiKey && anthropicModels.length === 0) {
+          try {
+            await get().fetchAnthropicModels();
+          } catch (error) {
+            console.error('Failed to refresh Anthropic models during init:', error);
+          }
+        }
+        if (geminiApiKey && geminiModels.length === 0) {
+          try {
+            await get().fetchGeminiModels();
+          } catch (error) {
+            console.error('Failed to refresh Gemini models during init:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Unexpected error during background initialization:', error);
+      }
+    })();
     set({ isInitialized: true });
   },
   
@@ -215,6 +323,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ anthropicApiKey: key });
     get().saveSettings();
   },
+
+  setGeminiApiKey: (key) => {
+    set({ geminiApiKey: key });
+    get().saveSettings();
+  },
   
   setCurrentDirectory: async (path) => {
     set({ currentDirectory: path });
@@ -235,12 +348,15 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   getProviderForModel: (model: string) => {
     // Determine the provider based on the model name
-    if (model.startsWith('claude')) {
+    const normalized = model.toLowerCase();
+    if (normalized.startsWith('claude')) {
       return 'anthropic';
-    } else if (model.startsWith('lmstudio:')) {
+    } else if (normalized.startsWith('lmstudio:')) {
       return 'lmstudio';
-    } else if (model.startsWith('ollama:')) {
+    } else if (normalized.startsWith('ollama:')) {
       return 'ollama';
+    } else if (normalized.startsWith('gemini:') || normalized.startsWith('models/gemini') || normalized.startsWith('gemini-')) {
+      return 'gemini';
     } else {
       return 'openai';
     }
@@ -413,6 +529,75 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     get().saveSettings();
   },
+
+  getSystemPromptOptions: () => {
+    const { customSystemPrompts } = get();
+    return getAllSystemPrompts(customSystemPrompts);
+  },
+
+  getSystemPromptText: (name: string) => {
+    const { customSystemPrompts } = get();
+    return getSystemPromptByName(name, customSystemPrompts).text;
+  },
+
+  saveCustomSystemPrompt: ({ name, description, text, originalName }) => {
+    const trimmedName = name.trim();
+    const trimmedText = text.trim();
+    if (!trimmedName || !trimmedText) {
+      console.warn('System prompt name and text are required');
+      return;
+    }
+    const sanitizedOriginalName = originalName?.trim();
+    const targetName = sanitizedOriginalName && sanitizedOriginalName.length > 0 ? sanitizedOriginalName : trimmedName;
+    const formattedPrompt: SystemPromptDefinition = {
+      name: trimmedName,
+      description: description?.trim() || undefined,
+      text: trimmedText,
+      isDefault: false,
+    };
+
+    set(state => {
+      const prompts = [...state.customSystemPrompts];
+      const existingIndex = prompts.findIndex(prompt => prompt.name === targetName);
+      if (existingIndex >= 0) {
+        prompts[existingIndex] = formattedPrompt;
+      } else {
+        const duplicateIndex = prompts.findIndex(prompt => prompt.name === trimmedName);
+        if (duplicateIndex >= 0) {
+          prompts[duplicateIndex] = formattedPrompt;
+        } else {
+          prompts.push(formattedPrompt);
+        }
+      }
+
+      let nextPromptStyle = state.selectedPromptStyle;
+      if (state.selectedPromptStyle === targetName) {
+        nextPromptStyle = trimmedName;
+      }
+
+      return {
+        customSystemPrompts: prompts,
+        ...(nextPromptStyle !== state.selectedPromptStyle ? { selectedPromptStyle: nextPromptStyle } : {})
+      };
+    });
+
+    get().saveSettings();
+  },
+
+  deleteCustomSystemPrompt: (name: string) => {
+    const trimmedName = name.trim();
+    set(state => {
+      const prompts = state.customSystemPrompts.filter(prompt => prompt.name !== trimmedName);
+      const updates: Partial<AppState> & { customSystemPrompts: SystemPromptDefinition[] } = {
+        customSystemPrompts: prompts
+      };
+      if (state.selectedPromptStyle === trimmedName) {
+        updates.selectedPromptStyle = DEFAULT_SYSTEM_PROMPTS[0].name;
+      }
+      return updates;
+    });
+    get().saveSettings();
+  },
   
   // LM Studio actions
   setLMStudioBaseUrl: (url: string) => {
@@ -426,12 +611,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       const response = await fetch(`${lmStudioBaseUrl}/models`);
       if (response.ok) {
         set({ lmStudioAvailable: true });
+        get().saveSettings();
         return true;
       }
     } catch (error) {
       // ignore
     }
     set({ lmStudioAvailable: false, lmStudioModels: [] });
+    get().saveSettings();
     return false;
   },
 
@@ -441,9 +628,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       const { LMStudioService } = await import('../services/LMStudioService');
       const service = new LMStudioService(lmStudioBaseUrl);
       const models = await service.fetchVisionModels();
-      set({ lmStudioModels: models, lmStudioAvailable: models.length > 0 });
+      set({ lmStudioModels: models, lmStudioAvailable: true });
+      get().saveSettings();
     } catch (error) {
       set({ lmStudioModels: [], lmStudioAvailable: false });
+      get().saveSettings();
     }
   },
 
@@ -459,12 +648,14 @@ export const useAppStore = create<AppState>((set, get) => ({
       const response = await fetch(`${ollamaBaseUrl}/api/tags`);
       if (response.ok) {
         set({ ollamaAvailable: true });
+        get().saveSettings();
         return true;
       }
     } catch (error) {
       // ignore
     }
     set({ ollamaAvailable: false, ollamaModels: [] });
+    get().saveSettings();
     return false;
   },
 
@@ -477,9 +668,144 @@ export const useAppStore = create<AppState>((set, get) => ({
       console.log('Fetched Ollama models:', models);
       // ollamaAvailable should be true if the server is up, even if no models
       set({ ollamaModels: models, ollamaAvailable: true });
+      get().saveSettings();
     } catch (error) {
       set({ ollamaModels: [], ollamaAvailable: false });
+      get().saveSettings();
     }
+  },
+
+  fetchOpenAIModels: async () => {
+    const { apiKey } = get();
+    if (!apiKey) {
+      throw new Error('OpenAI API key is required to load models.');
+    }
+    try {
+      const response = await fetch('https://api.openai.com/v1/models', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Failed to fetch OpenAI models (${response.status})`);
+      }
+      const payload = await response.json();
+      const models = Array.isArray(payload?.data)
+        ? payload.data
+            .filter((model: any) => model && typeof model.id === 'string')
+            .filter((model: any) => {
+              const id = model.id as string;
+              return OPENAI_VISION_MODEL_HINTS.some(hint => id.includes(hint));
+            })
+            .map((model: any) => ({
+              id: model.id as string,
+              name: typeof model?.owned_by === 'string' ? `${model.id}` : model.id
+            }))
+        : [];
+      set({ openAiModels: dedupeModels(models) });
+      get().saveSettings();
+    } catch (error) {
+      console.error('Error fetching OpenAI models:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to fetch OpenAI models.');
+    }
+  },
+
+  fetchAnthropicModels: async () => {
+    const { anthropicApiKey } = get();
+    if (!anthropicApiKey) {
+      throw new Error('Anthropic API key is required to load models.');
+    }
+    try {
+      const response = await fetch('https://api.anthropic.com/v1/models', {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': anthropicApiKey,
+          'anthropic-version': '2023-06-01',
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Failed to fetch Anthropic models (${response.status})`);
+      }
+      const payload = await response.json();
+      const models = Array.isArray(payload?.data)
+        ? payload.data
+            .filter((model: any) => model && typeof model.id === 'string')
+            .filter((model: any) => (model.id as string).toLowerCase().startsWith('claude'))
+            .map((model: any) => ({
+              id: model.id as string,
+              name: typeof model?.display_name === 'string' ? model.display_name : model.id
+            }))
+        : [];
+      set({ anthropicModels: dedupeModels(models) });
+      get().saveSettings();
+    } catch (error) {
+      console.error('Error fetching Anthropic models:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to fetch Anthropic models.');
+    }
+  },
+
+  fetchGeminiModels: async () => {
+    const { geminiApiKey } = get();
+    if (!geminiApiKey) {
+      throw new Error('Gemini API key is required to load models.');
+    }
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${geminiApiKey}`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Failed to fetch Gemini models (${response.status})`);
+      }
+      const payload = await response.json();
+      const models = Array.isArray(payload?.models)
+        ? payload.models
+            .filter((model: any) => {
+              if (!model || typeof model.name !== 'string') return false;
+              const normalized = model.name.toLowerCase();
+              return GEMINI_VISION_MODEL_HINTS.some(hint => normalized.includes(hint));
+            })
+            .map((model: any) => {
+              const id = typeof model.name === 'string' ? model.name.replace(/^models\//, '') : '';
+              return {
+                id,
+                name: typeof model.displayName === 'string' ? model.displayName : id
+              };
+            })
+        : [];
+      set({ geminiModels: dedupeModels(models) });
+      get().saveSettings();
+    } catch (error) {
+      console.error('Error fetching Gemini models:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to fetch Gemini models.');
+    }
+  },
+
+  togglePinnedModel: (modelId: string) => {
+    set(state => {
+      const pinned = new Set(state.pinnedModels);
+      if (pinned.has(modelId)) {
+        pinned.delete(modelId);
+      } else {
+        pinned.add(modelId);
+      }
+      return { pinnedModels: Array.from(pinned) };
+    });
+    get().saveSettings();
   },
 
   // Helper methods
@@ -489,6 +815,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({
         apiKey: '',
         anthropicApiKey: '',
+        geminiApiKey: '',
         isDarkMode: true,
         fontSize: 14.0,
         selectedModel: 'gpt-4o-mini',
@@ -498,9 +825,17 @@ export const useAppStore = create<AppState>((set, get) => ({
         suffixText: '',
         leftPanelWidth: 0.2,
         rightPanelWidth: 0.2,
+        customSystemPrompts: [],
         lmStudioBaseUrl: 'http://localhost:1234/v1',
         lmStudioAvailable: false,
         lmStudioModels: [],
+        ollamaBaseUrl: 'http://localhost:11434',
+        ollamaAvailable: false,
+        ollamaModels: [],
+        openAiModels: [],
+        anthropicModels: [],
+        geminiModels: [],
+        pinnedModels: [],
       });
       
       // Try to load settings from localStorage
@@ -510,22 +845,72 @@ export const useAppStore = create<AppState>((set, get) => ({
           if (savedSettings) {
             const settings = JSON.parse(savedSettings);
             console.log('Loaded settings from localStorage:', settings);
+            const storedCustomPrompts: SystemPromptDefinition[] = Array.isArray(settings.customSystemPrompts)
+              ? settings.customSystemPrompts
+                  .filter((prompt: any) => prompt && typeof prompt.name === 'string' && typeof prompt.text === 'string')
+                  .map((prompt: any) => ({
+                    name: prompt.name,
+                    description: typeof prompt.description === 'string' ? prompt.description : undefined,
+                    text: prompt.text,
+                    isDefault: false,
+                  }))
+              : [];
+            const savedPromptStyle = typeof settings.selectedPromptStyle === 'string'
+              ? settings.selectedPromptStyle
+              : DEFAULT_SYSTEM_PROMPTS[0].name;
+            const availablePromptNames = new Set(
+              [...DEFAULT_SYSTEM_PROMPTS, ...storedCustomPrompts].map(prompt => prompt.name)
+            );
+            const resolvedPromptStyle = availablePromptNames.has(savedPromptStyle)
+              ? savedPromptStyle
+              : DEFAULT_SYSTEM_PROMPTS[0].name;
+            const mapStoredModels = (models: any): ProviderModel[] => {
+              if (!Array.isArray(models)) {
+                return [];
+              }
+              return models
+                .filter(model => model && typeof model.id === 'string')
+                .map(model => ({
+                  id: model.id,
+                  name: typeof model.name === 'string' ? model.name : model.id
+                }));
+            };
+            const storedOpenAiModels = mapStoredModels(settings.openAiModels);
+            const storedAnthropicModels = mapStoredModels(settings.anthropicModels);
+            const storedGeminiModels = mapStoredModels(settings.geminiModels);
+            const storedLmStudioModels = mapStoredModels(settings.lmStudioModels);
+            const storedOllamaModels = mapStoredModels(settings.ollamaModels);
+            const savedPinnedModels: string[] = Array.isArray(settings.pinnedModels)
+              ? settings.pinnedModels.filter((value: any) => typeof value === 'string')
+              : [];
+            const savedOllamaAvailable = typeof settings.ollamaAvailable === 'boolean'
+              ? settings.ollamaAvailable
+              : storedOllamaModels.length > 0;
             
             set({
               apiKey: settings.apiKey || '',
               anthropicApiKey: settings.anthropicApiKey || '',
+              geminiApiKey: settings.geminiApiKey || '',
               isDarkMode: settings.isDarkMode !== false,
               fontSize: settings.fontSize || 14.0,
               selectedModel: settings.selectedModel || 'gpt-4o-mini',
-              selectedPromptStyle: settings.selectedPromptStyle || 'FLUX (Natural Language)',
+              selectedPromptStyle: resolvedPromptStyle,
               currentDirectory: settings.currentDirectory || null,
               prefixText: settings.prefixText || '',
               suffixText: settings.suffixText || '',
               leftPanelWidth: settings.leftPanelWidth || 0.2,
               rightPanelWidth: settings.rightPanelWidth || 0.2,
+              customSystemPrompts: storedCustomPrompts,
               lmStudioBaseUrl: settings.lmStudioBaseUrl || 'http://localhost:1234/v1',
-              lmStudioAvailable: false,
-              lmStudioModels: [],
+              lmStudioAvailable: storedLmStudioModels.length > 0,
+              lmStudioModels: storedLmStudioModels,
+              ollamaBaseUrl: settings.ollamaBaseUrl || 'http://localhost:11434',
+              ollamaAvailable: savedOllamaAvailable,
+              ollamaModels: storedOllamaModels,
+              openAiModels: storedOpenAiModels,
+              anthropicModels: storedAnthropicModels,
+              geminiModels: storedGeminiModels,
+              pinnedModels: savedPinnedModels,
             });
           }
         }
@@ -542,6 +927,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const { 
         apiKey,
         anthropicApiKey,
+        geminiApiKey,
         isDarkMode, 
         fontSize, 
         selectedModel, 
@@ -550,13 +936,23 @@ export const useAppStore = create<AppState>((set, get) => ({
         suffixText,
         leftPanelWidth,
         rightPanelWidth,
-        lmStudioBaseUrl
+        lmStudioBaseUrl,
+        lmStudioModels,
+        ollamaBaseUrl,
+        ollamaAvailable,
+        ollamaModels,
+        openAiModels,
+        anthropicModels,
+        geminiModels,
+        pinnedModels,
+        customSystemPrompts
       } = get();
       
       // Create settings object
       const settings = {
         apiKey,
         anthropicApiKey,
+        geminiApiKey,
         isDarkMode,
         fontSize,
         selectedModel,
@@ -565,7 +961,35 @@ export const useAppStore = create<AppState>((set, get) => ({
         suffixText,
         leftPanelWidth,
         rightPanelWidth,
-        lmStudioBaseUrl
+        lmStudioBaseUrl,
+        lmStudioModels: lmStudioModels.map(model => ({
+          id: model.id,
+          name: model.name
+        })),
+        ollamaBaseUrl,
+        ollamaAvailable,
+        ollamaModels: ollamaModels.map(model => ({
+          id: model.id,
+          name: model.name
+        })),
+        openAiModels: openAiModels.map(model => ({
+          id: model.id,
+          name: model.name
+        })),
+        anthropicModels: anthropicModels.map(model => ({
+          id: model.id,
+          name: model.name
+        })),
+        geminiModels: geminiModels.map(model => ({
+          id: model.id,
+          name: model.name
+        })),
+        pinnedModels: [...pinnedModels],
+        customSystemPrompts: customSystemPrompts.map(prompt => ({
+          name: prompt.name,
+          description: prompt.description,
+          text: prompt.text
+        }))
       };
       
       // Try to save settings to localStorage
