@@ -52,6 +52,8 @@ interface AppState {
   apiKeyVisible: boolean;
   anthropicApiKey: string; // Anthropic API key
   anthropicApiKeyVisible: boolean;
+  openRouterApiKey: string;
+  openRouterApiKeyVisible: boolean;
   geminiApiKey: string;
   geminiApiKeyVisible: boolean;
   prefixText: string;
@@ -82,6 +84,7 @@ interface AppState {
   openAiModels: ProviderModel[];
   anthropicModels: ProviderModel[];
   geminiModels: ProviderModel[];
+  openRouterModels: ProviderModel[];
   pinnedModels: string[];
 
   // Processing state
@@ -96,6 +99,7 @@ interface AppState {
   // Actions
   toggleApiKeyVisibility: () => void;
   toggleAnthropicApiKeyVisibility: () => void;
+  toggleOpenRouterApiKeyVisibility: () => void;
   toggleGeminiApiKeyVisibility: () => void;
   setProcessingState: (isProcessing: boolean, total?: number) => void;
   incrementProcessedCount: () => void;
@@ -107,6 +111,7 @@ interface AppState {
   setSelectedImage: (path: string) => void;
   setApiKey: (key: string) => void;
   setAnthropicApiKey: (key: string) => void;
+  setOpenRouterApiKey: (key: string) => void;
   setGeminiApiKey: (key: string) => void;
   setCurrentDirectory: (path: string) => Promise<void>;
   toggleTheme: () => void;
@@ -136,6 +141,7 @@ interface AppState {
   fetchOpenAIModels: () => Promise<void>;
   fetchAnthropicModels: () => Promise<void>;
   fetchGeminiModels: () => Promise<void>;
+  fetchOpenRouterModels: () => Promise<void>;
   togglePinnedModel: (modelId: string) => void;
   
   // Helper methods
@@ -157,6 +163,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   apiKeyVisible: false,
   anthropicApiKey: '',
   anthropicApiKeyVisible: false,
+  openRouterApiKey: '',
+  openRouterApiKeyVisible: false,
   geminiApiKey: '',
   geminiApiKeyVisible: false,
   prefixText: '',
@@ -182,6 +190,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   openAiModels: [],
   anthropicModels: [],
   geminiModels: [],
+  openRouterModels: [],
   pinnedModels: [],
 
   isInitialized: false,
@@ -194,6 +203,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   // Actions
   toggleApiKeyVisibility: () => set(state => ({ apiKeyVisible: !state.apiKeyVisible })),
   toggleAnthropicApiKeyVisibility: () => set(state => ({ anthropicApiKeyVisible: !state.anthropicApiKeyVisible })),
+  toggleOpenRouterApiKeyVisibility: () => set(state => ({ openRouterApiKeyVisible: !state.openRouterApiKeyVisible })),
   toggleGeminiApiKeyVisibility: () => set(state => ({ geminiApiKeyVisible: !state.geminiApiKeyVisible })),
   
   setProcessingState: (isProcessing, total = 0) => set({
@@ -229,9 +239,11 @@ export const useAppStore = create<AppState>((set, get) => ({
           apiKey, 
           anthropicApiKey, 
           geminiApiKey,
+          openRouterApiKey,
           openAiModels,
           anthropicModels,
-          geminiModels
+          geminiModels,
+          openRouterModels
         } = get();
         if (ollamaBaseUrl) {
           try {
@@ -272,6 +284,13 @@ export const useAppStore = create<AppState>((set, get) => ({
             await get().fetchGeminiModels();
           } catch (error) {
             console.error('Failed to refresh Gemini models during init:', error);
+          }
+        }
+        if (openRouterApiKey && openRouterModels.length === 0) {
+          try {
+            await get().fetchOpenRouterModels();
+          } catch (error) {
+            console.error('Failed to refresh OpenRouter models during init:', error);
           }
         }
       } catch (error) {
@@ -324,6 +343,11 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().saveSettings();
   },
 
+  setOpenRouterApiKey: (key) => {
+    set({ openRouterApiKey: key });
+    get().saveSettings();
+  },
+
   setGeminiApiKey: (key) => {
     set({ geminiApiKey: key });
     get().saveSettings();
@@ -355,6 +379,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       return 'lmstudio';
     } else if (normalized.startsWith('ollama:')) {
       return 'ollama';
+    } else if (normalized.startsWith('openrouter:')) {
+      return 'openrouter';
     } else if (normalized.startsWith('gemini:') || normalized.startsWith('models/gemini') || normalized.startsWith('gemini-')) {
       return 'gemini';
     } else {
@@ -795,6 +821,59 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
+  fetchOpenRouterModels: async () => {
+    const { openRouterApiKey } = get();
+    if (!openRouterApiKey) {
+      throw new Error('OpenRouter API key is required to load models.');
+    }
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/models/user', {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openRouterApiKey}`,
+          'HTTP-Referer': 'https://github.com/oshtz/tagmeister',
+          'X-Title': 'tagmeister'
+        },
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Failed to fetch OpenRouter models (${response.status})`);
+      }
+      const payload = await response.json();
+      const rawModels = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload?.models)
+          ? payload.models
+          : [];
+      const models = rawModels
+        .filter((model: any) => {
+          const inputs: string[] = Array.isArray(model?.capabilities?.input)
+            ? model.capabilities.input
+            : Array.isArray(model?.input)
+              ? model.input
+              : [];
+          return inputs.some(input => typeof input === 'string' && input.toLowerCase() === 'image');
+        })
+        .map((model: any) => ({
+          id: typeof model?.id === 'string' ? model.id : typeof model?.name === 'string' ? model.name : '',
+          name: typeof model?.name === 'string'
+            ? model.name
+            : typeof model?.id === 'string'
+              ? model.id
+              : 'OpenRouter Model'
+        }))
+        .filter(model => !!model.id);
+      set({ openRouterModels: dedupeModels(models) });
+      get().saveSettings();
+    } catch (error) {
+      console.error('Error fetching OpenRouter models:', error);
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Failed to fetch OpenRouter models.');
+    }
+  },
+
   togglePinnedModel: (modelId: string) => {
     set(state => {
       const pinned = new Set(state.pinnedModels);
@@ -816,6 +895,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         apiKey: '',
         anthropicApiKey: '',
         geminiApiKey: '',
+        openRouterApiKey: '',
         isDarkMode: true,
         fontSize: 14.0,
         selectedModel: 'gpt-4o-mini',
@@ -835,6 +915,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         openAiModels: [],
         anthropicModels: [],
         geminiModels: [],
+        openRouterModels: [],
         pinnedModels: [],
       });
       
@@ -878,6 +959,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             const storedOpenAiModels = mapStoredModels(settings.openAiModels);
             const storedAnthropicModels = mapStoredModels(settings.anthropicModels);
             const storedGeminiModels = mapStoredModels(settings.geminiModels);
+            const storedOpenRouterModels = mapStoredModels(settings.openRouterModels);
             const storedLmStudioModels = mapStoredModels(settings.lmStudioModels);
             const storedOllamaModels = mapStoredModels(settings.ollamaModels);
             const savedPinnedModels: string[] = Array.isArray(settings.pinnedModels)
@@ -890,6 +972,7 @@ export const useAppStore = create<AppState>((set, get) => ({
             set({
               apiKey: settings.apiKey || '',
               anthropicApiKey: settings.anthropicApiKey || '',
+              openRouterApiKey: settings.openRouterApiKey || '',
               geminiApiKey: settings.geminiApiKey || '',
               isDarkMode: settings.isDarkMode !== false,
               fontSize: settings.fontSize || 14.0,
@@ -910,6 +993,7 @@ export const useAppStore = create<AppState>((set, get) => ({
               openAiModels: storedOpenAiModels,
               anthropicModels: storedAnthropicModels,
               geminiModels: storedGeminiModels,
+              openRouterModels: storedOpenRouterModels,
               pinnedModels: savedPinnedModels,
             });
           }
@@ -928,6 +1012,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         apiKey,
         anthropicApiKey,
         geminiApiKey,
+        openRouterApiKey,
         isDarkMode, 
         fontSize, 
         selectedModel, 
@@ -944,6 +1029,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         openAiModels,
         anthropicModels,
         geminiModels,
+        openRouterModels,
         pinnedModels,
         customSystemPrompts
       } = get();
@@ -953,6 +1039,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         apiKey,
         anthropicApiKey,
         geminiApiKey,
+        openRouterApiKey,
         isDarkMode,
         fontSize,
         selectedModel,
@@ -981,6 +1068,10 @@ export const useAppStore = create<AppState>((set, get) => ({
           name: model.name
         })),
         geminiModels: geminiModels.map(model => ({
+          id: model.id,
+          name: model.name
+        })),
+        openRouterModels: openRouterModels.map(model => ({
           id: model.id,
           name: model.name
         })),

@@ -222,6 +222,10 @@ const CaptionEditor: React.FC = () => {
     anthropicApiKeyVisible,
     toggleAnthropicApiKeyVisibility,
     setAnthropicApiKey,
+    openRouterApiKey,
+    openRouterApiKeyVisible,
+    toggleOpenRouterApiKeyVisibility,
+    setOpenRouterApiKey,
     geminiApiKey,
     geminiApiKeyVisible,
     toggleGeminiApiKeyVisibility,
@@ -263,9 +267,11 @@ const CaptionEditor: React.FC = () => {
     openAiModels,
     anthropicModels,
     geminiModels,
+    openRouterModels,
     fetchOpenAIModels,
     fetchAnthropicModels,
     fetchGeminiModels,
+    fetchOpenRouterModels,
     pinnedModels,
     togglePinnedModel,
     getSystemPromptOptions,
@@ -307,6 +313,7 @@ const CaptionEditor: React.FC = () => {
     openAiModels.forEach(model => addOption(model.id, `OpenAI: ${model.name}`, 'openai'));
     anthropicModels.forEach(model => addOption(model.id, `Anthropic: ${model.name}`, 'anthropic'));
     geminiModels.forEach(model => addOption(`gemini:${model.id}`, `Gemini: ${model.name}`, 'gemini'));
+    openRouterModels.forEach(model => addOption(`openrouter:${model.id}`, `${model.name}`, 'openrouter'));
     lmStudioModels.forEach(model => addOption(`lmstudio:${model.id}`, `LM Studio: ${model.name}`, 'lmstudio'));
     ollamaModels.forEach(model => addOption(`ollama:${model.id}`, `Ollama: ${model.name}`, 'ollama'));
     const seen = new Set<string>();
@@ -352,6 +359,8 @@ const CaptionEditor: React.FC = () => {
           return 'Ollama';
         case 'gemini':
           return 'Gemini';
+        case 'openrouter':
+          return 'OpenRouter';
         default:
           return 'OpenAI';
       }
@@ -381,6 +390,7 @@ const CaptionEditor: React.FC = () => {
     geminiModels,
     lmStudioModels,
     ollamaModels,
+    openRouterModels,
     pinnedModels,
     getProviderForModel
   ]);
@@ -391,9 +401,11 @@ const CaptionEditor: React.FC = () => {
         return !!apiKey;
       case 'anthropic':
         return !!anthropicApiKey;
-      case 'gemini':
-        return !!geminiApiKey;
-      case 'lmstudio':
+    case 'gemini':
+      return !!geminiApiKey;
+    case 'openrouter':
+      return !!openRouterApiKey;
+    case 'lmstudio':
         return selectedModel.startsWith('lmstudio:') && lmStudioAvailable;
       case 'ollama':
         return selectedModel.startsWith('ollama:') && ollamaAvailable;
@@ -405,6 +417,7 @@ const CaptionEditor: React.FC = () => {
     apiKey,
     anthropicApiKey,
     geminiApiKey,
+    openRouterApiKey,
     lmStudioAvailable,
     ollamaAvailable,
     selectedModel
@@ -436,6 +449,66 @@ const CaptionEditor: React.FC = () => {
   
   // Helper function to delay execution
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+  const handleModelMenuClose = () => setModelMenuAnchor(null);
+  const handleModelMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setModelMenuAnchor(event.currentTarget);
+  };
+  const handleRefreshModels = async (
+    provider: 'openai' | 'anthropic' | 'gemini' | 'lmstudio' | 'ollama'
+  ) => {
+    handleModelMenuClose();
+    const providerName = {
+      openai: 'OpenAI',
+      anthropic: 'Anthropic',
+      gemini: 'Gemini',
+      lmstudio: 'LM Studio',
+      ollama: 'Ollama'
+    }[provider];
+    try {
+      if (provider === 'openai') {
+        if (!apiKey) {
+          showAlertDialog('Please enter an OpenAI API key first.', { type: 'error', title: 'Missing API Key' });
+          return;
+        }
+        await fetchOpenAIModels();
+        showAlertDialog('OpenAI model list updated.', { type: 'info', title: 'Models Refreshed' });
+      } else if (provider === 'anthropic') {
+        if (!anthropicApiKey) {
+          showAlertDialog('Please enter an Anthropic API key first.', { type: 'error', title: 'Missing API Key' });
+          return;
+        }
+        await fetchAnthropicModels();
+        showAlertDialog('Anthropic model list updated.', { type: 'info', title: 'Models Refreshed' });
+      } else if (provider === 'gemini') {
+        if (!geminiApiKey) {
+          showAlertDialog('Please enter a Gemini API key first.', { type: 'error', title: 'Missing API Key' });
+          return;
+        }
+        await fetchGeminiModels();
+        showAlertDialog('Gemini model list updated.', { type: 'info', title: 'Models Refreshed' });
+      } else if (provider === 'lmstudio') {
+        const ok = await checkLMStudioConnection();
+        if (!ok) {
+          showAlertDialog('Could not connect to LM Studio at the specified URL.', { type: 'error', title: 'LM Studio Connection Failed' });
+          return;
+        }
+        await fetchLMStudioModels();
+        showAlertDialog('LM Studio models loaded.', { type: 'info', title: 'Models Refreshed' });
+      } else if (provider === 'ollama') {
+        const ok = await checkOllamaConnection();
+        if (!ok) {
+          showAlertDialog('Could not connect to Ollama at the specified URL.', { type: 'error', title: 'Ollama Connection Failed' });
+          return;
+        }
+        await fetchOllamaModels();
+        showAlertDialog('Ollama models loaded.', { type: 'info', title: 'Models Refreshed' });
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      showAlertDialog(`Failed to refresh ${providerName} models: ${message}`, { type: 'error', title: 'Model Refresh Failed' });
+    }
+  };
   
   // Process a single image and return its final caption
   const processSingleImage = async (
@@ -523,6 +596,25 @@ const CaptionEditor: React.FC = () => {
         streamHandler
       );
       processedCaption = rawCaption.trim().replace(/\.$/, '');
+    } else if (provider === 'openrouter') {
+      if (!openRouterApiKey) {
+        throw new Error('OpenRouter API key is required for OpenRouter models');
+      }
+      const openRouterService = new OpenAIService(openRouterApiKey, {
+        baseUrl: 'https://openrouter.ai/api/v1/chat/completions',
+        additionalHeaders: {
+          'HTTP-Referer': 'https://github.com/oshtz/tagmeister',
+          'X-Title': 'tagmeister'
+        }
+      });
+      const modelId = selectedModel.replace(/^openrouter:/, '');
+      rawCaption = await openRouterService.generateImageCaption(
+        imagePath,
+        modelId,
+        promptText,
+        streamHandler
+      );
+      processedCaption = openRouterService.processCaption(rawCaption).trim();
     } else if (provider === 'gemini') {
       if (!geminiApiKey) {
         throw new Error('Gemini API key is required for Gemini models');
@@ -717,6 +809,9 @@ const CaptionEditor: React.FC = () => {
       return;
     } else if (provider === 'openai' && !apiKey) {
       showAlertDialog('Please enter an OpenAI API key first', { type: 'error', title: 'Missing API Key' });
+      return;
+    } else if (provider === 'openrouter' && !openRouterApiKey) {
+      showAlertDialog('Please enter an OpenRouter API key first', { type: 'error', title: 'Missing API Key' });
       return;
     } else if (provider === 'gemini' && !geminiApiKey) {
       showAlertDialog('Please enter a Gemini API key first', { type: 'error', title: 'Missing API Key' });
@@ -963,6 +1058,75 @@ const CaptionEditor: React.FC = () => {
               })
             })}
           />
+          
+          {/* Gemini API Key */}
+          <Typography 
+            variant="caption" 
+            sx={{ 
+              display: 'block',
+              mb: 1,
+              fontFamily: '"Karla", sans-serif'
+            }}
+          >
+            Gemini API Key
+          </Typography>
+          <TextField
+            fullWidth
+            size="small"
+            type={geminiApiKeyVisible ? 'text' : 'password'}
+            value={geminiApiKey}
+            onChange={(e) => setGeminiApiKey(e.target.value)}
+            placeholder="Enter Gemini API Key"
+            variant="standard" 
+            InputLabelProps={{
+              sx: { boxShadow: 'none !important' }
+            }}
+            InputProps={{
+              sx: theme => ({
+                fontFamily: '"Inconsolata", monospace',
+                boxShadow: 'none !important',
+                filter: 'none !important',
+                ...(theme.palette.mode === 'light' && {
+                  background: 'transparent',
+                  '& svg': { filter: 'none !important' }
+                }),
+                '& fieldset': {
+                  boxShadow: 'none !important',
+                  border: 'none !important'
+                }
+              }),
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={toggleGeminiApiKeyVisibility}
+                    edge="end"
+                    size="small"
+                    sx={{
+                      boxShadow: 'none !important',
+                      border: 'none'
+                    }}
+                  >
+                    {geminiApiKeyVisible ? <VisibilityOffIcon /> : <VisibilityIcon color="primary" />}
+                  </IconButton>
+                </InputAdornment>
+              )
+            }}
+            sx={theme => ({
+              boxShadow: 'none !important', 
+              filter: 'none !important',
+              mb: 2,
+              ...(theme.palette.mode === 'light' && {
+                '& .MuiOutlinedInput-notchedOutline': {
+                  boxShadow: 'none !important',
+                  border: 'none !important'
+                },
+                '& .MuiInputBase-root': {
+                  boxShadow: 'none !important',
+                  border: 'none !important'
+                }
+              })
+            })}
+          />
 
           {/* LM Studio Server URL */}
           <Typography 
@@ -1183,41 +1347,97 @@ const CaptionEditor: React.FC = () => {
           </Box>
         </Grid>
         <Grid item xs={6}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+            <Typography 
+              variant="caption"
+              sx={{ fontFamily: '"Karla", sans-serif' }}
+            >
+              Model
+            </Typography>
+            <Tooltip title="Refresh available models">
+              <IconButton size="small" onClick={handleModelMenuOpen} sx={{ p: 0.5 }}>
+                <RefreshIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+          <TextField
+            fullWidth
+            size="small"
+            value={modelFilter}
+            onChange={(e) => setModelFilter(e.target.value)}
+            placeholder="Filter models"
+            variant="standard"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <FilterAltIcon fontSize="small" />
+                </InputAdornment>
+              ),
+              sx: {
+                fontFamily: '"Inconsolata", monospace'
+              }
+            }}
+            sx={{ mb: 1 }}
+          />
           <FormControl fullWidth size="small">
-            <InputLabel sx={{ fontFamily: '"Karla", sans-serif' }}>Model</InputLabel>
             <Select
               value={selectedModel}
-              label="Model"
               onChange={(e) => setModel(e.target.value)}
               sx={{ fontFamily: '"Inconsolata", monospace' }}
+              renderValue={(value) => {
+                const option = modelOptions.find(opt => opt.value === value);
+                return option ? option.label : value;
+              }}
             >
-              <MenuItem value="gpt-4o-mini" sx={{ fontFamily: '"Inconsolata", monospace' }}>OpenAI: gpt-4o-mini</MenuItem>
-              <MenuItem value="gpt-4o" sx={{ fontFamily: '"Inconsolata", monospace' }}>OpenAI: gpt-4o</MenuItem>
-              <MenuItem value="claude-3-7-sonnet-20250219" sx={{ fontFamily: '"Inconsolata", monospace' }}>Anthropic: Claude 3.7 Sonnet</MenuItem>
-              {/* LM Studio Models */}
-              {lmStudioAvailable && lmStudioModels.map(model => (
-                <MenuItem
-                  key={model.id}
-                  value={`lmstudio:${model.id}`}
-                  sx={{ fontFamily: '"Inconsolata", monospace' }}
-                >
-                  LM Studio: {model.name}
+              {modelOptions.length === 0 ? (
+                <MenuItem value="" disabled sx={{ fontFamily: '"Inconsolata", monospace' }}>
+                  No models available
                 </MenuItem>
-              ))}
-              {/* Ollama Models */}
-              {useAppStore.getState().ollamaAvailable && useAppStore.getState().ollamaModels.map(model => (
-                <MenuItem
-                  key={model.id}
-                  value={`ollama:${model.id}`}
-                  sx={{ fontFamily: '"Inconsolata", monospace' }}
-                >
-                  Ollama: {model.name}
-                </MenuItem>
-              ))}
+              ) : (
+                modelOptions.map(option => (
+                  <MenuItem
+                    key={option.value}
+                    value={option.value}
+                    sx={{ fontFamily: '"Inconsolata", monospace' }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                      <Typography component="span" sx={{ fontFamily: '"Inconsolata", monospace' }}>
+                        {option.label}
+                      </Typography>
+                      <Tooltip title={pinnedSet.has(option.value) ? 'Unpin model' : 'Pin model'}>
+                        <IconButton
+                          size="small"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            togglePinnedModel(option.value);
+                          }}
+                        >
+                          {pinnedSet.has(option.value)
+                            ? <StarIcon fontSize="small" color="warning" />
+                            : <StarBorderIcon fontSize="small" />}
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  </MenuItem>
+                ))
+              )}
             </Select>
           </FormControl>
         </Grid>
       </Grid>
+
+      <Menu
+        anchorEl={modelMenuAnchor}
+        open={Boolean(modelMenuAnchor)}
+        onClose={handleModelMenuClose}
+      >
+        <MenuItem onClick={() => handleRefreshModels('openai')}>Refresh OpenAI Models</MenuItem>
+        <MenuItem onClick={() => handleRefreshModels('anthropic')}>Refresh Anthropic Models</MenuItem>
+        <MenuItem onClick={() => handleRefreshModels('gemini')}>Refresh Gemini Models</MenuItem>
+        <MenuItem onClick={() => handleRefreshModels('lmstudio')}>Refresh LM Studio Models</MenuItem>
+        <MenuItem onClick={() => handleRefreshModels('ollama')}>Refresh Ollama Models</MenuItem>
+      </Menu>
       
       {/* Processing indicator and stop button removed - now handled by App.tsx */}
       

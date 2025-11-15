@@ -1,11 +1,19 @@
 import axios from 'axios';
 
+type OpenAIServiceOptions = {
+  baseUrl?: string;
+  additionalHeaders?: Record<string, string>;
+};
+
 export class OpenAIService {
   private apiKey: string;
-  private baseUrl: string = 'https://api.openai.com/v1/chat/completions';
+  private baseUrl: string;
+  private additionalHeaders: Record<string, string>;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, options?: OpenAIServiceOptions) {
     this.apiKey = apiKey;
+    this.baseUrl = options?.baseUrl ?? 'https://api.openai.com/v1/chat/completions';
+    this.additionalHeaders = options?.additionalHeaders ?? {};
   }
 
   /**
@@ -85,6 +93,7 @@ export class OpenAIService {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${this.apiKey}`,
+            ...this.additionalHeaders,
           },
           body: JSON.stringify(payload)
         });
@@ -183,6 +192,7 @@ export class OpenAIService {
               headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${this.apiKey}`,
+                ...this.additionalHeaders,
               },
             }
           );
