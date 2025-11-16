@@ -79,7 +79,7 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
     placeholder: string,
     provider?: ProviderId
   ) => (
-    <Box sx={{ mb: 3 }}>
+    <Box sx={{ width: '100%' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
         <Typography
           variant="caption"
@@ -168,7 +168,7 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
     status: { available: boolean; emptyMessage: string; missingMessage: string },
     provider?: ProviderId
   ) => (
-    <Box sx={{ mb: 3 }}>
+    <Box sx={{ width: '100%' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
         <Typography
           variant="caption"
@@ -362,42 +362,60 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
         <Typography variant="subtitle1" sx={{ fontFamily: '"Karla", sans-serif', mb: 2 }}>
           Remote APIs
         </Typography>
-        {renderApiKeyField('OpenAI API Key', apiKey, setApiKey, apiKeyVisible, toggleApiKeyVisibility, 'Enter OpenAI API Key', 'openai')}
-        {renderApiKeyField('Anthropic API Key', anthropicApiKey, setAnthropicApiKey, anthropicApiKeyVisible, toggleAnthropicApiKeyVisibility, 'Enter Anthropic API Key', 'anthropic')}
-        {renderApiKeyField('OpenRouter API Key', openRouterApiKey, setOpenRouterApiKey, openRouterApiKeyVisible, toggleOpenRouterApiKeyVisibility, 'Enter OpenRouter API Key', 'openrouter')}
-        {renderApiKeyField('Gemini API Key', geminiApiKey, setGeminiApiKey, geminiApiKeyVisible, toggleGeminiApiKeyVisibility, 'Enter Gemini API Key', 'gemini')}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
+            gap: { xs: 2, sm: 3 },
+            mb: 3,
+          }}
+        >
+          {renderApiKeyField('OpenAI API Key', apiKey, setApiKey, apiKeyVisible, toggleApiKeyVisibility, 'Enter OpenAI API Key', 'openai')}
+          {renderApiKeyField('Anthropic API Key', anthropicApiKey, setAnthropicApiKey, anthropicApiKeyVisible, toggleAnthropicApiKeyVisibility, 'Enter Anthropic API Key', 'anthropic')}
+          {renderApiKeyField('OpenRouter API Key', openRouterApiKey, setOpenRouterApiKey, openRouterApiKeyVisible, toggleOpenRouterApiKeyVisibility, 'Enter OpenRouter API Key', 'openrouter')}
+          {renderApiKeyField('Gemini API Key', geminiApiKey, setGeminiApiKey, geminiApiKeyVisible, toggleGeminiApiKeyVisibility, 'Enter Gemini API Key', 'gemini')}
+        </Box>
 
         <Divider sx={{ my: 3 }} />
 
         <Typography variant="subtitle1" sx={{ fontFamily: '"Karla", sans-serif', mb: 2 }}>
           Local Runtimes
         </Typography>
-        {renderServerField(
-          'LM Studio Server URL',
-          lmStudioBaseUrl,
-          setLMStudioBaseUrl,
-          'http://localhost:1234/v1',
-          handleLMStudioCheck,
-          {
-            available: lmStudioAvailable && lmStudioModels.length === 0,
-            emptyMessage: 'No vision-capable models found on LM Studio.',
-            missingMessage: !lmStudioAvailable ? 'LM Studio not available or not running at the specified URL.' : '',
-          },
-          'lmstudio'
-        )}
-        {renderServerField(
-          'Ollama Server URL',
-          ollamaBaseUrl,
-          setOllamaBaseUrl,
-          'http://localhost:11434',
-          handleOllamaCheck,
-          {
-            available: ollamaAvailable && ollamaModels.length === 0,
-            emptyMessage: 'No vision-capable models found on Ollama.',
-            missingMessage: !ollamaAvailable ? 'Ollama not available or not running at the specified URL.' : '',
-          },
-          'ollama'
-        )}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
+            gap: { xs: 2, sm: 3 },
+            mb: 3,
+          }}
+        >
+          {renderServerField(
+            'LM Studio Server URL',
+            lmStudioBaseUrl,
+            setLMStudioBaseUrl,
+            'http://localhost:1234/v1',
+            handleLMStudioCheck,
+            {
+              available: lmStudioAvailable && lmStudioModels.length === 0,
+              emptyMessage: 'No vision-capable models found on LM Studio.',
+              missingMessage: !lmStudioAvailable ? 'LM Studio not available or not running at the specified URL.' : '',
+            },
+            'lmstudio'
+          )}
+          {renderServerField(
+            'Ollama Server URL',
+            ollamaBaseUrl,
+            setOllamaBaseUrl,
+            'http://localhost:11434',
+            handleOllamaCheck,
+            {
+              available: ollamaAvailable && ollamaModels.length === 0,
+              emptyMessage: 'No vision-capable models found on Ollama.',
+              missingMessage: !ollamaAvailable ? 'Ollama not available or not running at the specified URL.' : '',
+            },
+            'ollama'
+          )}
+        </Box>
 
         <Divider sx={{ my: 3 }} />
 

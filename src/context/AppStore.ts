@@ -778,6 +778,99 @@ export const useAppStore = create<AppState>((set, get) => ({
       throw new Error('OpenAI API key is required to load models.');
     }
     try {
+      const normalizeInputs = (value: any): string[] => {
+        if (!value) return [];
+        if (typeof value === 'string') {
+          return [value.toLowerCase()];
+        }
+        if (Array.isArray(value)) {
+          return value
+            .map(item => (typeof item === 'string' ? item.toLowerCase() : ''))
+            .filter(Boolean);
+        }
+        return [];
+      };
+      const collectModalities = (...sources: any[]): string[] =>
+        sources.flatMap(source => normalizeInputs(source));
+      const supportsVisionCaptioning = (model: any): boolean => {
+        if (!model || typeof model !== 'object') {
+          return false;
+        }
+        const architectureModality = typeof model?.modality === 'string'
+          ? model.modality.toLowerCase()
+          : typeof model?.architecture?.modality === 'string'
+            ? model.architecture.modality.toLowerCase()
+            : null;
+        if (architectureModality && architectureModality.includes('embedding')) {
+          return false;
+        }
+
+        const outputSignals = collectModalities(
+          model?.output,
+          model?.output_modalities,
+          model?.capabilities?.output,
+          model?.capabilities?.output_modalities,
+          model?.architecture?.output_modalities
+        );
+        const generalModalities = collectModalities(
+          model?.modalities,
+          model?.capabilities?.modalities
+        );
+        const hasTextOutput =
+          outputSignals.some(value => value.includes('text') || value.includes('language')) ||
+          generalModalities.some(value => value.includes('text') || value.includes('language')) ||
+          (architectureModality
+            ? architectureModality.includes('text') ||
+              architectureModality.includes('language') ||
+              architectureModality.includes('multimodal')
+            : false);
+        if (!hasTextOutput) {
+          return false;
+        }
+
+        if (typeof model?.capabilities?.image_input === 'boolean') {
+          return model.capabilities.image_input;
+        }
+        if (typeof model?.capabilities?.vision === 'boolean' && model.capabilities.vision) {
+          return true;
+        }
+
+        const inputSignals = collectModalities(
+          model?.input,
+          model?.input_modalities,
+          model?.capabilities?.input,
+          model?.capabilities?.input_modalities,
+          model?.architecture?.input_modalities
+        );
+        const hasImageLikeInput =
+          inputSignals.some(value =>
+            value.includes('image') ||
+            value.includes('vision') ||
+            value.includes('visual') ||
+            value.includes('multimodal')
+          ) ||
+          generalModalities.some(value =>
+            value.includes('image') ||
+            value.includes('vision') ||
+            value.includes('visual') ||
+            value.includes('multimodal')
+          ) ||
+          (architectureModality
+            ? architectureModality.includes('vision') ||
+              architectureModality.includes('multimodal') ||
+              (architectureModality.includes('image') && architectureModality.includes('text'))
+            : false);
+
+        if (hasImageLikeInput) {
+          return true;
+        }
+
+        const id = typeof model?.id === 'string' ? model.id.toLowerCase() : '';
+        if (id) {
+          return OPENAI_VISION_MODEL_HINTS.some(hint => id.includes(hint));
+        }
+        return false;
+      };
       const response = await fetch('https://api.openai.com/v1/models', {
         headers: {
           'Content-Type': 'application/json',
@@ -792,10 +885,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       const models = Array.isArray(payload?.data)
         ? payload.data
             .filter((model: any) => model && typeof model.id === 'string')
-            .filter((model: any) => {
-              const id = model.id as string;
-              return OPENAI_VISION_MODEL_HINTS.some(hint => id.includes(hint));
-            })
+            .filter((model: any) => supportsVisionCaptioning(model))
             .map((model: any) => ({
               id: model.id as string,
               name: typeof model?.owned_by === 'string' ? `${model.id}` : model.id
@@ -922,34 +1012,68 @@ export const useAppStore = create<AppState>((set, get) => ({
         if (architectureModality && architectureModality.includes('embedding')) {
           return false;
         }
-        const candidateLists = [
-          normalizeInputs(model?.capabilities?.input),
-          normalizeInputs(model?.capabilities?.input_modalities),
-          normalizeInputs(model?.capabilities?.modalities),
-          normalizeInputs(model?.input),
-          normalizeInputs(model?.modalities),
-          normalizeInputs(model?.architecture?.input_modalities),
-          normalizeInputs(model?.architecture?.output_modalities)
-        ];
-        if (candidateLists.some(list => list.includes('image'))) {
-          return true;
+
+        const collectModalities = (...sources: any[]): string[] =>
+          sources.flatMap(value => normalizeInputs(value));
+
+        const inputSignals = collectModalities(
+          model?.input,
+          model?.input_modalities,
+          model?.capabilities?.input,
+          model?.capabilities?.input_modalities,
+          model?.architecture?.input_modalities
+        );
+        const outputSignals = collectModalities(
+          model?.output,
+          model?.output_modalities,
+          model?.capabilities?.output,
+          model?.capabilities?.output_modalities,
+          model?.architecture?.output_modalities
+        );
+        const generalModalities = collectModalities(
+          model?.modalities,
+          model?.capabilities?.modalities
+        );
+
+        const hasTextOutput =
+          outputSignals.some(value => value === 'text' || value.includes('text')) ||
+          generalModalities.some(value => value.includes('text') || value.includes('language')) ||
+          (architectureModality
+            ? architectureModality.includes('text') || architectureModality.includes('language') || architectureModality.includes('multimodal')
+            : false);
+        if (!hasTextOutput) {
+          return false;
         }
-        if (typeof model?.architecture?.modality === 'string') {
-          const modality = model.architecture.modality.toLowerCase();
-          if (modality.includes('image') || modality.includes('vision')) {
-            return true;
-          }
+
+        if (typeof model?.capabilities?.image_input === 'boolean') {
+          return model.capabilities.image_input;
         }
+
         if (typeof model?.capabilities?.vision === 'boolean' && model.capabilities.vision) {
           return true;
         }
-        if (typeof model?.capabilities?.image === 'boolean' && model.capabilities.image) {
-          return true;
-        }
-        if (model?.pricing && model.pricing.image !== undefined && model.pricing.image !== null) {
-          return true;
-        }
-        return false;
+
+        const hasImageLikeInput =
+          inputSignals.some(value =>
+            value === 'image' ||
+            value.includes('image') ||
+            value.includes('vision') ||
+            value.includes('visual') ||
+            value.includes('multimodal')
+          ) ||
+          generalModalities.some(value =>
+            value.includes('image') ||
+            value.includes('vision') ||
+            value.includes('visual') ||
+            value.includes('multimodal')
+          ) ||
+          (architectureModality
+            ? architectureModality.includes('vision') ||
+              architectureModality.includes('multimodal') ||
+              (architectureModality.includes('image') && architectureModality.includes('text'))
+            : false);
+
+        return hasImageLikeInput;
       };
       const response = await fetch('https://openrouter.ai/api/v1/models/user', {
         headers: {
