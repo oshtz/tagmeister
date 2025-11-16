@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -423,34 +424,87 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
           Application Updates
         </Typography>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-          <Typography variant="body2" sx={{ fontFamily: '"Inconsolata", monospace' }}>
-            Current version: {currentVersion ? `v${currentVersion}` : 'Unknown'}
-          </Typography>
-          <Typography variant="body2" sx={{ fontFamily: '"Inconsolata", monospace' }}>
-            Latest release: {latestVersion ? `v${latestVersion}` : 'Not checked yet'}
-          </Typography>
+        <Box
+          sx={{
+            borderRadius: 2,
+            border: theme => `1px solid ${theme.palette.divider}`,
+            backgroundColor: theme =>
+              theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+            p: { xs: 2, sm: 3 },
+            display: 'flex',
+            flexDirection: 'column',
+            gap: { xs: 1.5, sm: 2 },
+          }}
+        >
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
+              gap: { xs: 2, sm: 3 },
+            }}
+          >
+            <Box>
+              <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>
+                Installed version
+              </Typography>
+              <Typography variant="h6" sx={{ fontFamily: '"Inconsolata", monospace' }}>
+                {currentVersion ? `v${currentVersion}` : 'Unknown'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                This is the build currently running.
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ textTransform: 'uppercase', letterSpacing: 1 }}>
+                Latest release
+              </Typography>
+              <Typography
+                variant="h6"
+                sx={theme => ({
+                  fontFamily: '"Inconsolata", monospace',
+                  color: updateAvailable ? theme.palette.success.main : undefined,
+                })}
+              >
+                {latestVersion ? `v${latestVersion}` : 'Not checked yet'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {updateAvailable
+                  ? 'A newer version is available.'
+                  : latestVersion
+                    ? 'You are on the latest known version.'
+                    : 'Run a check to fetch the latest build info.'}
+              </Typography>
+            </Box>
+          </Box>
+
           {updateStatus && (
-            <Typography
-              variant="body2"
-              sx={{
-                color:
-                  updateStatus.tone === 'error'
-                    ? 'error.main'
-                    : updateStatus.tone === 'success'
-                      ? 'success.main'
-                      : 'text.secondary',
-              }}
+            <Alert
+              variant="outlined"
+              severity={
+                updateStatus.tone === 'error'
+                  ? 'error'
+                  : updateStatus.tone === 'success'
+                    ? 'success'
+                    : 'info'
+              }
             >
               {updateStatus.message}
-            </Typography>
+            </Alert>
           )}
           {!updateStatus && updateError && (
-            <Typography variant="body2" color="error">
+            <Alert variant="outlined" severity="error">
               {updateError}
-            </Typography>
+            </Alert>
           )}
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 1 }}>
+
+          <Box
+            sx={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: 1,
+              justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+            }}
+          >
             <Button
               variant="outlined"
               onClick={handleManualUpdateCheck}
