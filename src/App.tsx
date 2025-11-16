@@ -23,7 +23,7 @@ import TitleBar from "./components/TitleBar";
 import AlertDialog from "./components/AlertDialog";
 import NoDirectoryOverlay from "./components/NoDirectoryOverlay";
 import "./App.css";
-import { open as openExternal } from '@tauri-apps/plugin-shell';
+import { openUrl } from '@tauri-apps/plugin-opener';
 
 function App() {
   const { 
@@ -76,7 +76,7 @@ function App() {
       return;
     }
     try {
-      await openExternal(pendingUpdate.releaseUrl);
+      await openUrl(pendingUpdate.releaseUrl);
     } catch (error) {
       console.error('Failed to open release URL:', error);
     }

@@ -18,7 +18,7 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import LinkIcon from '@mui/icons-material/Link';
 import { useAppStore, type ProviderId } from '../context/AppStore';
-import { open as openExternal } from '@tauri-apps/plugin-shell';
+import { openUrl } from '@tauri-apps/plugin-opener';
 
 interface SettingsPanelDialogProps {
   open: boolean;
@@ -293,7 +293,7 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
       return;
     }
     try {
-      await openExternal(url);
+      await openUrl(url);
     } catch (error) {
       console.error('Failed to open release page:', error);
       setUpdateStatus({ message: 'Unable to open the release page.', tone: 'error' });
