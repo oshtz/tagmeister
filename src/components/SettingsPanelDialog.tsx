@@ -24,9 +24,13 @@ import { openUrl } from '@tauri-apps/plugin-opener';
 interface SettingsPanelDialogProps {
   open: boolean;
   onClose: () => void;
+  showAlertDialog: (
+    message: string,
+    options?: { title?: string; type?: 'info' | 'error' | 'confirm'; onConfirm?: () => void }
+  ) => void;
 }
 
-const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose }) => {
+const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose, showAlertDialog }) => {
   const {
     apiKey,
     setApiKey,
@@ -56,7 +60,6 @@ const SettingsPanelDialog: React.FC<SettingsPanelDialogProps> = ({ open, onClose
     fetchOllamaModels,
     ollamaAvailable,
     ollamaModels,
-    showAlertDialog,
     enabledProviders,
     setProviderEnabled,
     checkForUpdates,

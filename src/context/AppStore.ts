@@ -1101,7 +1101,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           }
           return supportsImageInput(model);
         })
-        .map((model: any) => ({
+        .map((model: any): ProviderModel => ({
           id: typeof model?.id === 'string' ? model.id : typeof model?.name === 'string' ? model.name : '',
           name: typeof model?.name === 'string'
             ? model.name
@@ -1109,7 +1109,7 @@ export const useAppStore = create<AppState>((set, get) => ({
               ? model.id
               : 'OpenRouter Model'
         }))
-        .filter(model => !!model.id);
+        .filter((model: ProviderModel) => !!model.id);
       console.log(`OpenRouter vision models loaded: ${models.length}/${rawModels.length}`);
       set({ openRouterModels: dedupeModels(models) });
       get().saveSettings();

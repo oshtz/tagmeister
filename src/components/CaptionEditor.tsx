@@ -49,7 +49,7 @@ import SettingsPanelDialog from './SettingsPanelDialog';
 type ModelOption = {
   value: string;
   label: string;
-  provider: string;
+  provider: ProviderId;
 };
 
 const filterModelOptions = (
@@ -265,8 +265,7 @@ const CaptionEditor: React.FC = () => {
   const promptOptions = getSystemPromptOptions();
   const pinnedSet = useMemo(() => new Set(pinnedModels), [pinnedModels]);
   const modelOptions = useMemo(() => {
-    type Option = { value: string; label: string; provider: ProviderId };
-    const options: Option[] = [];
+    const options: ModelOption[] = [];
     const addOption = (value: string, label: string, provider: ProviderId) => {
       if (!value) return;
       const providerEnabled = enabledProviders?.[provider] !== false;
@@ -289,7 +288,7 @@ const CaptionEditor: React.FC = () => {
       seen.add(option.value);
       return true;
     });
-    const ensureSelectedOption = (current: Option[]) => {
+    const ensureSelectedOption = (current: ModelOption[]) => {
       if (!selectedModel) {
         return current;
       }
@@ -352,8 +351,8 @@ const CaptionEditor: React.FC = () => {
     getProviderForModel,
     enabledProviders
   ]);
-  const selectedModelOption = useMemo(
-    () => modelOptions.find(option => option.value === selectedModel) ?? null,
+  const selectedModelOption = useMemo<ModelOption | undefined>(
+    () => modelOptions.find(option => option.value === selectedModel) ?? undefined,
     [modelOptions, selectedModel]
   );
   useEffect(() => {
@@ -433,6 +432,7 @@ const CaptionEditor: React.FC = () => {
       openai: 'OpenAI',
       anthropic: 'Anthropic',
       gemini: 'Gemini',
+      openrouter: 'OpenRouter',
       lmstudio: 'LM Studio',
       ollama: 'Ollama'
     }[provider];
@@ -834,6 +834,7 @@ const CaptionEditor: React.FC = () => {
         <SettingsPanelDialog
           open={isSettingsPanelOpen}
           onClose={() => setSettingsPanelOpen(false)}
+          showAlertDialog={showAlertDialog}
         />
       </>
     );
@@ -1296,6 +1297,7 @@ const CaptionEditor: React.FC = () => {
       <SettingsPanelDialog
         open={isSettingsPanelOpen}
         onClose={() => setSettingsPanelOpen(false)}
+        showAlertDialog={showAlertDialog}
       />
     </>
   );

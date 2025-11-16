@@ -74,7 +74,7 @@ npm run tauri build
 
 - Pushes to `main` trigger `.github/workflows/release.yml`, which runs the Tauri build on `windows-latest` and `macos-latest`.
 - The workflow installs dependencies with `npm ci`, runs `npm run tauri build` via the official `tauri-apps/tauri-action`, and uploads the resulting `.exe` and `.dmg` bundles as workflow artifacts.
-- These artifacts (currently versioned at `1.1.2`) can be published as GitHub Releases and consumed by an in-app update checker that compares the local version to the latest release on the repository.
+- These artifacts (currently versioned at `1.1.3`) can be published as GitHub Releases and consumed by an in-app update checker that compares the local version to the latest release on the repository.
 
 ## Usage
 
