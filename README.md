@@ -1,4 +1,4 @@
-# tagmeister <img src="https://github.com/oshtz/tagmeister-osx/blob/main/tagmeister/Assets.xcassets/AppIcon.appiconset/AppIcon256%201.png?raw=true" alt="tagmeister logo" width="128" align="right"/>
+# tagmeister <img src="https://github.com/oshtz/tagmeister/blob/main/public/app_icon.png?raw=true" alt="tagmeister logo" width="128" align="right"/>
 
 A cross-platform desktop application for efficient image captioning using OpenAI, Anthropic, Gemini, OpenRouter, or local models via Ollama and LM Studio.
 tagmeister helps you organize and caption your datasets with ease on Windows and macOS.
