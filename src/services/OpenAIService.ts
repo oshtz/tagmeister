@@ -1,11 +1,19 @@
 import axios from 'axios';
 
+type OpenAIServiceOptions = {
+  baseUrl?: string;
+  additionalHeaders?: Record<string, string>;
+};
+
 export class OpenAIService {
   private apiKey: string;
-  private baseUrl: string = 'https://api.openai.com/v1/chat/completions';
+  private baseUrl: string;
+  private additionalHeaders: Record<string, string>;
 
-  constructor(apiKey: string) {
+  constructor(apiKey: string, options?: OpenAIServiceOptions) {
     this.apiKey = apiKey;
+    this.baseUrl = options?.baseUrl ?? 'https://api.openai.com/v1/chat/completions';
+    this.additionalHeaders = options?.additionalHeaders ?? {};
   }
 
   /**
@@ -39,29 +47,19 @@ export class OpenAIService {
    * Generate a caption for an image using OpenAI's API
    * @param imagePath Path to the image file
    * @param model OpenAI model to use
-   * @param promptStyle Style of prompt to use: 'FLUX (Natural Language)' or 'SDXL (Booru Tags)'
+   * @param promptText System prompt text to send with the request
    * @param onChunk Optional callback function to handle streaming chunks
    * @returns Generated caption
    */
   async generateImageCaption(
     imagePath: string,
     model: string,
-    promptStyle: string = 'FLUX (Natural Language)',
+    promptText: string,
     onChunk?: (chunk: string) => void
   ): Promise<string> {
     try {
       // Read the image file as base64
       const imageBase64 = await this.getBase64FromImagePath(imagePath);
-      
-      // Determine the prompt text based on the style
-      let promptText: string;
-      
-      if (promptStyle === 'SDXL (Booru Tags)') {
-        promptText = "Generate a list of tags for this image in the style of Booru image boards and SDXL prompts. Focus on describing the visual elements, subjects, objects, settings, colors, lighting, composition, artistic style, and other relevant attributes. Format the output as a comma-separated list of tags without numbering or bullet points. Be specific and detailed, but keep each tag concise (1-3 words typically). Include tags for the main subject, background elements, colors, lighting, composition, style, medium, and any notable features. Do not include explanatory text or categorization headers - just provide the raw comma-separated tag list. Make sure to include mostly single-word tags, you can use some double-word tags if needed but mostly single word if possible.";
-      } else {
-        // Default to Natural Language Style
-        promptText = "Describe this image in one concise paragraph, starting immediately with the primary subject (e.g., 'Watch,' 'Landscape,' 'Person'). Focus on key elements, their relationships, and notable details. Be specific and direct, avoiding any introductory phrases like 'The image shows' or 'I can see.' Prioritize the most important aspects and describe them factually. Identify the main subject quickly and accurately, noting its dominant characteristics such as size, color, shape, or position. For multiple elements, describe their spatial relationships. Include relevant details about composition, color schemes, lighting, and textures. Mention any actions, movements, functions, or unique features of objects, and appearances or behaviors of people or animals. Include any visible text, logos, or recognizable symbols. Describe what you see literally, without interpreting the image's style (e.g., don't use terms like 'stylized,' 'illustration,' or mention artistic techniques). Treat every subject as a real object or scene, not as a representation. Use varied and precise vocabulary to create a vivid description while maintaining a neutral tone. Avoid subjective interpretations unless crucial to understanding the image's content.";
-      }
 
       // If streaming is requested (onChunk callback provided)
       if (onChunk) {
@@ -95,6 +93,7 @@ export class OpenAIService {
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${this.apiKey}`,
+            ...this.additionalHeaders,
           },
           body: JSON.stringify(payload)
         });
@@ -193,6 +192,7 @@ export class OpenAIService {
               headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${this.apiKey}`,
+                ...this.additionalHeaders,
               },
             }
           );

@@ -1,6 +1,6 @@
 # tagmeister <img src="https://github.com/oshtz/tagmeister-osx/blob/main/tagmeister/Assets.xcassets/AppIcon.appiconset/AppIcon256%201.png?raw=true" alt="tagmeister logo" width="128" align="right"/>
 
-A cross-platform desktop application for efficient image captioning using OpenAI, Anthropic, or local models via Ollama and LM Studio.
+A cross-platform desktop application for efficient image captioning using OpenAI, Anthropic, Gemini, OpenRouter, or local models via Ollama and LM Studio.
 tagmeister helps you organize and caption your datasets with ease on Windows and macOS.
 
 ---
@@ -14,7 +14,7 @@ tagmeister helps you organize and caption your datasets with ease on Windows and
 ## Features
 
 - Browse and view images from any directory
-- Generate AI-powered image captions using GPT models (OpenAI, Anthropic, Ollama, LM Studio)
+- Generate AI-powered image captions using GPT models (OpenAI, Anthropic, Gemini, OpenRouter, Ollama, LM Studio)
 - Choose between cloud (OpenAI, Anthropic) and local (Ollama, LM Studio) captioning backends
 - Edit captions manually, save captions automatically
 - Keyboard shortcuts for efficient navigation
@@ -25,7 +25,7 @@ tagmeister helps you organize and caption your datasets with ease on Windows and
 
 - **Windows:** Windows 10 or later
 - **macOS:** macOS 10.15 or later
-- For cloud captioning: OpenAI or Anthropic API key
+- For cloud captioning: OpenAI, Anthropic, Gemini, or OpenRouter API key
 - For local captioning: [Ollama](https://ollama.com/) and/or [LM Studio](https://lmstudio.ai/) installed (if using local models)
 - **CORS must be enabled on your LM Studio server and Ollama for local models to work.**
   [How to enable CORS for Ollama](https://objectgraph.com/blog/ollama-cors/)
@@ -70,11 +70,17 @@ npm run tauri build
 # The built application will be available in src-tauri/target/release/bundle/
 ```
 
+## Continuous Integration
+
+- Pushes to `main` trigger `.github/workflows/release.yml`, which runs the Tauri build on `windows-latest` and `macos-latest`.
+- The workflow installs dependencies with `npm ci`, runs `npm run tauri build` via the official `tauri-apps/tauri-action`, and uploads the resulting `.exe` and `.dmg` bundles as workflow artifacts.
+- These artifacts (currently versioned at `1.1.3`) can be published as GitHub Releases and consumed by an in-app update checker that compares the local version to the latest release on the repository.
+
 ## Usage
 
 1. Click the folder icon to select an image directory
 2. Select images from the left panel
-3. Choose your preferred captioning backend in the settings (OpenAI, Anthropic, Ollama, or LM Studio)
+3. Choose your preferred captioning backend in the settings (OpenAI, Anthropic, Gemini, OpenRouter, Ollama, or LM Studio)
 4. Click "Generate" to create AI captions
 5. Edit captions as needed
 6. Captions are automatically saved as `.txt` files alongside your images
