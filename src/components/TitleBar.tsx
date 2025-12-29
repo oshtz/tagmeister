@@ -52,6 +52,20 @@ const TitleBar: React.FC<TitleBarProps> = ({ title = 'tagmeister', isDarkMode })
     await appWindow.close();
   };
 
+  const handleDragStart = async (event: React.MouseEvent) => {
+    if (event.button !== 0) return;
+    const target = event.target as HTMLElement | null;
+    if (target?.closest('[data-no-drag]')) {
+      return;
+    }
+    try {
+      const appWindow = Window.getCurrent();
+      await appWindow.startDragging();
+    } catch (error) {
+      console.error('Failed to start dragging:', error);
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -63,12 +77,11 @@ const TitleBar: React.FC<TitleBarProps> = ({ title = 'tagmeister', isDarkMode })
         borderBottom: '1px solid',
         borderColor: 'divider',
         px: 1,
-        // This makes the title bar draggable
-        WebkitAppRegion: 'drag',
         // Prevent text selection during drag
         userSelect: 'none',
       }}
       data-tauri-drag-region
+      onMouseDown={handleDragStart}
     >
       <img 
         src={isDarkMode ? 'logo_white.png' : 'logo_black.png'} 
@@ -78,9 +91,9 @@ const TitleBar: React.FC<TitleBarProps> = ({ title = 'tagmeister', isDarkMode })
 
       <Box 
         sx={{ 
-          display: 'flex', 
-          WebkitAppRegion: 'no-drag' // Make buttons clickable
+          display: 'flex'
         }}
+        data-no-drag
       >
         <IconButton 
           size="small" 

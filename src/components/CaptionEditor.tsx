@@ -262,6 +262,8 @@ const CaptionEditor: React.FC = () => {
   const [isSettingsPanelOpen, setSettingsPanelOpen] = useState(false);
   const [modelFilter, setModelFilter] = useState('');
   const [modelMenuAnchor, setModelMenuAnchor] = useState<null | HTMLElement>(null);
+  const captionRef = useRef<HTMLDivElement>(null);
+  const isEditingCaptionRef = useRef(false);
   const promptOptions = getSystemPromptOptions();
   const pinnedSet = useMemo(() => new Set(pinnedModels), [pinnedModels]);
   const modelOptions = useMemo(() => {
@@ -401,6 +403,18 @@ const CaptionEditor: React.FC = () => {
       setCaption('');
     }
   }, [selectedImage, captions]);
+
+  useEffect(() => {
+    const element = captionRef.current;
+    if (!element) return;
+    if (isEditingCaptionRef.current && document.activeElement === element) {
+      return;
+    }
+    const nextValue = caption || '';
+    if (element.textContent !== nextValue) {
+      element.textContent = nextValue;
+    }
+  }, [caption]);
   
   // Handle caption change
   const handleCaptionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1158,7 +1172,6 @@ const CaptionEditor: React.FC = () => {
           {/* Text content without TextField border */}
           <Box
             component="div"
-            key={caption}
             sx={{
               fontSize: `${fontSize}px`,
               fontFamily: '"Inconsolata", monospace',
@@ -1168,9 +1181,14 @@ const CaptionEditor: React.FC = () => {
               width: '100%',
               minHeight: '100%'
             }}
+            ref={captionRef}
             contentEditable
             suppressContentEditableWarning
+            onFocus={() => {
+              isEditingCaptionRef.current = true;
+            }}
             onBlur={(e) => {
+              isEditingCaptionRef.current = false;
               const newValue = e.currentTarget.textContent || '';
               if (newValue !== caption) {
                 setCaption(newValue);
@@ -1187,7 +1205,6 @@ const CaptionEditor: React.FC = () => {
                 updateCaption(selectedImage, newValue);
               }
             }}
-            dangerouslySetInnerHTML={{ __html: caption }}
           />
         </Box>
       </Box>

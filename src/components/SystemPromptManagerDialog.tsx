@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
@@ -49,10 +49,14 @@ const SystemPromptManagerDialog: React.FC<SystemPromptManagerDialogProps> = ({ o
     selectedPromptStyle,
     setPromptStyle,
     getSystemPromptOptions,
+    customSystemPrompts,
     saveCustomSystemPrompt,
     deleteCustomSystemPrompt,
   } = useAppStore();
-  const promptOptions = getSystemPromptOptions();
+  const promptOptions = useMemo(
+    () => getSystemPromptOptions(),
+    [getSystemPromptOptions, customSystemPrompts]
+  );
   const [activePromptName, setActivePromptName] = useState<string>(selectedPromptStyle);
   const [formState, setFormState] = useState<FormState>({ ...blankFormState });
   const [error, setError] = useState<string | null>(null);
