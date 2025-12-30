@@ -34,7 +34,7 @@ jobs:
         run: npm ci
 
       - name: Build Tauri app
-        run: npm run tauri build -- --bundles none
+        run: npm run tauri build -- --no-bundle
 
       - name: Install Enigma Virtual Box
         shell: pwsh
