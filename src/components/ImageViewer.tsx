@@ -29,6 +29,7 @@ const ImageViewer: React.FC = () => {
     if (selectedImage) {
       setLoading(true);
       setError(null);
+      setImageSrc(null);
       
       // Use Rust function to load the image as base64
       invoke<string>('read_image_as_base64', { path: selectedImage })
@@ -169,9 +170,11 @@ const ImageViewer: React.FC = () => {
           <CircularProgress />
         ) : error ? (
           <Typography color="error">Error loading image: {error}</Typography>
+        ) : !imageSrc ? (
+          <CircularProgress />
         ) : (
           <img
-            src={imageSrc || ''}
+            src={imageSrc}
             alt="Selected"
             style={{ 
               maxWidth: `${scale * 100}%`, 

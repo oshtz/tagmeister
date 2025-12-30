@@ -1,0 +1,257 @@
+name: Build Release Artifacts
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Tauri app
+        run: npm run tauri build -- --no-bundle
+
+      - name: Install Enigma Virtual Box
+        shell: pwsh
+        run: |
+          # Download EVB installer with multiple fallback sources
+          $evbUrls = @(
+            "https://www.enigmaprotector.com/assets/files/enigmavb.exe",
+            "https://enigmaprotector.com/assets/files/enigmavb.exe",
+            "https://web.archive.org/web/2024/https://enigmaprotector.com/assets/files/enigmavb.exe"
+          )
+          $evbInstaller = Join-Path $env:RUNNER_TEMP "enigmavb_setup.exe"
+          Remove-Item -Path $evbInstaller -Force -ErrorAction SilentlyContinue
+
+          $downloaded = $false
+          foreach ($evbUrl in $evbUrls) {
+            Write-Host "Trying: $evbUrl"
+            for ($attempt = 1; $attempt -le 3; $attempt++) {
+              try {
+                # Use Invoke-WebRequest with browser-like headers
+                $headers = @{
+                  "User-Agent" = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                  "Accept" = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+                }
+                Invoke-WebRequest -Uri $evbUrl -OutFile $evbInstaller -UseBasicParsing -Headers $headers -MaximumRedirection 5
+
+                if ((Test-Path $evbInstaller) -and (Get-Item $evbInstaller).Length -gt 1MB) {
+                  $downloaded = $true
+                  Write-Host "Downloaded successfully from $evbUrl"
+                  break
+                }
+              } catch {
+                Write-Host "Attempt $attempt failed: $_"
+              }
+              Start-Sleep -Seconds 2
+            }
+            if ($downloaded) { break }
+          }
+
+          if (-not $downloaded) {
+            throw "Failed to download EVB installer. The enigmaprotector.com site may be blocking CI downloads. Consider caching the installer in a GitHub release."
+          }
+
+          # Install silently
+          $process = Start-Process -FilePath $evbInstaller -ArgumentList "/VERYSILENT","/NORESTART" -Wait -PassThru
+          if ($process.ExitCode -ne 0) {
+            throw "EVB installer failed with exit code $($process.ExitCode)"
+          }
+
+          # Verify
+          if (Test-Path "C:\Program Files (x86)\Enigma Virtual Box\enigmavbconsole.exe") {
+            Write-Host "EVB installed successfully"
+          } else {
+            throw "EVB installation failed"
+          }
+
+      - name: Create portable exe
+        shell: pwsh
+        run: |
+          # Install @insco/enigma-virtualbox CLI globally
+          npm install -g @insco/enigma-virtualbox
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to install @insco/enigma-virtualbox"
+          }
+
+          $inputExe = Resolve-Path "src-tauri\target\release\tagmeister.exe"
+          $outputExe = Join-Path $PWD "src-tauri\target\release\tagmeister-Portable.exe"
+          $webviewDll = Get-ChildItem -Path "src-tauri\target" -Filter "WebView2Loader.dll" -Recurse | Select-Object -First 1
+          if (-not $webviewDll) {
+            throw "WebView2Loader.dll not found under src-tauri\\target"
+          }
+          $webviewDllPath = $webviewDll.FullName
+
+          # Use enigmavirtualbox to generate a compatible EVB project file
+          $evbStaging = Join-Path $PWD "evb-staging"
+          New-Item -ItemType Directory -Force -Path $evbStaging | Out-Null
+          Copy-Item -Path $webviewDllPath -Destination $evbStaging -Force
+          $evbProject = Join-Path $PWD "tagmeister.evb"
+          enigmavirtualbox generate $evbStaging --input $inputExe --output $outputExe --project-name $evbProject
+          if ($LASTEXITCODE -ne 0) {
+            throw "enigmavirtualbox generate failed"
+          }
+          $evbConsole = "C:\Program Files (x86)\Enigma Virtual Box\enigmavbconsole.exe"
+          if (-not (Test-Path $evbConsole)) {
+            throw "enigmavbconsole.exe not found at $evbConsole"
+          }
+          & $evbConsole $evbProject
+          if ($LASTEXITCODE -ne 0) {
+            throw "enigmavbconsole failed"
+          }
+
+          # Verify output
+          if (Test-Path $outputExe) {
+            $size = [math]::Round((Get-Item $outputExe).Length / 1MB, 2)
+            Write-Host "Portable exe created: $size MB"
+          } else {
+            throw "Failed to create portable exe"
+          }
+
+      - name: Upload portable exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: tagmeister-Portable
+          path: src-tauri/target/release/tagmeister-Portable.exe
+
+      - name: Determine release tag
+        id: release_tag
+        if: github.ref == 'refs/heads/main'
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          if (-not $version) {
+            throw "package.json version not found"
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "tag=v$version" >> $env:GITHUB_OUTPUT
+
+      - name: Create or update GitHub release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_tag.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          generate_release_notes: true
+          files: src-tauri/target/release/tagmeister-Portable.exe
+
+  build-macos:
+    needs: build-windows
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Import Apple certificate
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+        run: |
+          if [ -z "$APPLE_CERTIFICATE" ] || [ -z "$APPLE_CERTIFICATE_PASSWORD" ] || [ -z "$APPLE_SIGNING_IDENTITY" ]; then
+            echo "Missing Apple signing secrets (APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY)."
+            exit 1
+          fi
+          echo "$APPLE_CERTIFICATE" | base64 --decode > /tmp/apple_cert.p12
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security import /tmp/apple_cert.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -A
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          security list-keychains -d user -s build.keychain
+          security default-keychain -s build.keychain
+          security find-identity -v -p codesigning build.keychain
+
+      - name: Verify notarization credentials
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [ -z "$APPLE_ID" ] || [ -z "$APPLE_PASSWORD" ] || [ -z "$APPLE_TEAM_ID" ]; then
+            echo "Missing notarization secrets (APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID)."
+            exit 1
+          fi
+          xcrun notarytool store-credentials "notarytool-profile" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_PASSWORD"
+
+      - name: Build Tauri app (dmg)
+        env:
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          RUST_LOG: tauri_bundler=debug
+          RUST_BACKTRACE: 1
+        run: npm run tauri build -- --bundles dmg
+
+      - name: Upload dmg
+        uses: actions/upload-artifact@v4
+        with:
+          name: tagmeister-macOS-dmg
+          path: src-tauri/target/release/bundle/dmg/*.dmg
+
+      - name: Determine release tag
+        id: release_tag
+        if: github.ref == 'refs/heads/main'
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ -z "$version" ]; then
+            echo "package.json version not found"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Upload dmg to GitHub release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_tag.outputs.tag }}
+          files: src-tauri/target/release/bundle/dmg/*.dmg
