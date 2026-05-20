@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { invoke } from '@tauri-apps/api/core';
 
 export class AnthropicService {
