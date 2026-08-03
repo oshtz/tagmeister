@@ -1,15 +1,40 @@
-name: Build Release Artifacts
+name: Validate and Build Artifacts
 
 on:
+  pull_request:
   push:
     branches: [main]
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check release workflow contract
+        run: npm run check:release-workflow
+
+      - name: Build frontend
+        run: npm run build
+
   build-windows:
+    needs: validate
+    if: github.event_name != 'pull_request'
     runs-on: windows-latest
 
     steps:
@@ -36,83 +61,97 @@ jobs:
       - name: Build Tauri app
         run: npm run tauri build -- --no-bundle
 
-      - name: Install Enigma Virtual Box
+      - name: Create standard Windows artifact
         shell: pwsh
         run: |
-          # Download EVB installer with multiple fallback sources
-          $evbUrls = @(
-            "https://www.enigmaprotector.com/assets/files/enigmavb.exe",
-            "https://enigmaprotector.com/assets/files/enigmavb.exe",
-            "https://web.archive.org/web/2024/https://enigmaprotector.com/assets/files/enigmavb.exe"
-          )
-          $evbInstaller = Join-Path $env:RUNNER_TEMP "enigmavb_setup.exe"
-          Remove-Item -Path $evbInstaller -Force -ErrorAction SilentlyContinue
+          $inputExe = Resolve-Path "src-tauri\target\release\tagmeister.exe"
+          $webviewDll = Get-ChildItem -Path "src-tauri\target" -Filter "WebView2Loader.dll" -Recurse | Select-Object -First 1
+          if (-not $webviewDll) {
+            throw "WebView2Loader.dll not found under src-tauri\\target"
+          }
+          $staging = Join-Path $PWD "windows-staging"
+          New-Item -ItemType Directory -Force -Path $staging | Out-Null
+          Copy-Item -Path $inputExe -Destination $staging -Force
+          Copy-Item -Path $webviewDll.FullName -Destination $staging -Force
+          Compress-Archive -Path "$staging\*" -DestinationPath "tagmeister-Windows.zip" -Force
+          $hash = (Get-FileHash "tagmeister-Windows.zip" -Algorithm SHA256).Hash.ToLowerInvariant()
+          [IO.File]::WriteAllText((Join-Path $PWD "tagmeister-Windows.zip.sha256"), "$hash  tagmeister-Windows.zip`n")
 
-          $downloaded = $false
-          foreach ($evbUrl in $evbUrls) {
-            Write-Host "Trying: $evbUrl"
-            for ($attempt = 1; $attempt -le 3; $attempt++) {
-              try {
-                # Use Invoke-WebRequest with browser-like headers
-                $headers = @{
-                  "User-Agent" = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                  "Accept" = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
-                }
-                Invoke-WebRequest -Uri $evbUrl -OutFile $evbInstaller -UseBasicParsing -Headers $headers -MaximumRedirection 5
+      - name: Upload standard Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tagmeister-Windows
+          path: |
+            tagmeister-Windows.zip
+            tagmeister-Windows.zip.sha256
 
-                if ((Test-Path $evbInstaller) -and (Get-Item $evbInstaller).Length -gt 1MB) {
-                  $downloaded = $true
-                  Write-Host "Downloaded successfully from $evbUrl"
-                  break
-                }
-              } catch {
-                Write-Host "Attempt $attempt failed: $_"
-              }
-              Start-Sleep -Seconds 2
-            }
-            if ($downloaded) { break }
+      - name: Validate optional Enigma configuration
+        shell: pwsh
+        env:
+          ENIGMA_INSTALLER_URL: ${{ vars.ENIGMA_VIRTUAL_BOX_INSTALLER_URL }}
+          ENIGMA_INSTALLER_SHA256: ${{ vars.ENIGMA_VIRTUAL_BOX_INSTALLER_SHA256 }}
+        run: |
+          $hasUrl = -not [string]::IsNullOrWhiteSpace($env:ENIGMA_INSTALLER_URL)
+          $hasHash = -not [string]::IsNullOrWhiteSpace($env:ENIGMA_INSTALLER_SHA256)
+          if ($hasUrl -xor $hasHash) {
+            throw "Set both ENIGMA_VIRTUAL_BOX_INSTALLER_URL and ENIGMA_VIRTUAL_BOX_INSTALLER_SHA256, or neither"
+          }
+          if (-not $hasUrl) {
+            Write-Output "Optional Enigma packaging is not configured; the standard Windows artifact is available"
           }
 
-          if (-not $downloaded) {
-            throw "Failed to download EVB installer. The enigmaprotector.com site may be blocking CI downloads. Consider caching the installer in a GitHub release."
-          }
+  build-windows-portable:
+    needs: build-windows
+    if: github.event_name != 'pull_request' && vars.ENIGMA_VIRTUAL_BOX_INSTALLER_URL != '' && vars.ENIGMA_VIRTUAL_BOX_INSTALLER_SHA256 != ''
+    continue-on-error: true
+    runs-on: windows-latest
+    env:
+      ENIGMA_INSTALLER_URL: ${{ vars.ENIGMA_VIRTUAL_BOX_INSTALLER_URL }}
+      ENIGMA_INSTALLER_SHA256: ${{ vars.ENIGMA_VIRTUAL_BOX_INSTALLER_SHA256 }}
 
-          # Install silently
-          $process = Start-Process -FilePath $evbInstaller -ArgumentList "/VERYSILENT","/NORESTART" -Wait -PassThru
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download standard Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: tagmeister-Windows
+
+      - name: Verify and install Enigma Virtual Box
+        shell: pwsh
+        run: |
+          if ($env:ENIGMA_INSTALLER_SHA256 -notmatch '^[a-fA-F0-9]{64}$') {
+            throw "ENIGMA_VIRTUAL_BOX_INSTALLER_SHA256 must be a 64-character SHA-256 value"
+          }
+          $installer = Join-Path $env:RUNNER_TEMP "enigmavb_setup.exe"
+          Invoke-WebRequest -Uri $env:ENIGMA_INSTALLER_URL -OutFile $installer -MaximumRedirection 5
+          $actualHash = (Get-FileHash $installer -Algorithm SHA256).Hash
+          if (-not $actualHash.Equals($env:ENIGMA_INSTALLER_SHA256, [StringComparison]::OrdinalIgnoreCase)) {
+            throw "Enigma Virtual Box installer SHA-256 mismatch"
+          }
+          $process = Start-Process -FilePath $installer -ArgumentList "/VERYSILENT","/NORESTART" -Wait -PassThru
           if ($process.ExitCode -ne 0) {
             throw "EVB installer failed with exit code $($process.ExitCode)"
-          }
-
-          # Verify
-          if (Test-Path "C:\Program Files (x86)\Enigma Virtual Box\enigmavbconsole.exe") {
-            Write-Host "EVB installed successfully"
-          } else {
-            throw "EVB installation failed"
           }
 
       - name: Create portable exe
         shell: pwsh
         run: |
-          # Install @insco/enigma-virtualbox CLI globally
-          npm install -g @insco/enigma-virtualbox
-          if ($LASTEXITCODE -ne 0) {
-            throw "Failed to install @insco/enigma-virtualbox"
-          }
-
-          $inputExe = Resolve-Path "src-tauri\target\release\tagmeister.exe"
-          $outputExe = Join-Path $PWD "src-tauri\target\release\tagmeister-Portable.exe"
-          $webviewDll = Get-ChildItem -Path "src-tauri\target" -Filter "WebView2Loader.dll" -Recurse | Select-Object -First 1
-          if (-not $webviewDll) {
-            throw "WebView2Loader.dll not found under src-tauri\\target"
-          }
-          $webviewDllPath = $webviewDll.FullName
-
-          # Use enigmavirtualbox to generate a compatible EVB project file
-          $evbStaging = Join-Path $PWD "evb-staging"
-          New-Item -ItemType Directory -Force -Path $evbStaging | Out-Null
-          Copy-Item -Path $webviewDllPath -Destination $evbStaging -Force
+          Expand-Archive -Path "tagmeister-Windows.zip" -DestinationPath "windows-staging" -Force
+          $inputExe = Resolve-Path "windows-staging\tagmeister.exe"
+          $outputExe = Join-Path $PWD "tagmeister-Portable.exe"
           $evbProject = Join-Path $PWD "tagmeister.evb"
-          enigmavirtualbox generate $evbStaging --input $inputExe --output $outputExe --project-name $evbProject
+          & ".\node_modules\.bin\enigmavirtualbox.cmd" generate "windows-staging" --input $inputExe --output $outputExe --project-name $evbProject
           if ($LASTEXITCODE -ne 0) {
             throw "enigmavirtualbox generate failed"
           }
@@ -121,47 +160,19 @@ jobs:
             throw "enigmavbconsole.exe not found at $evbConsole"
           }
           & $evbConsole $evbProject
-          if ($LASTEXITCODE -ne 0) {
-            throw "enigmavbconsole failed"
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path $outputExe)) {
+            throw "Enigma Virtual Box portable build failed"
           }
 
-          # Verify output
-          if (Test-Path $outputExe) {
-            $size = [math]::Round((Get-Item $outputExe).Length / 1MB, 2)
-            Write-Host "Portable exe created: $size MB"
-          } else {
-            throw "Failed to create portable exe"
-          }
-
-      - name: Upload portable exe
+      - name: Upload portable Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: tagmeister-Portable
-          path: src-tauri/target/release/tagmeister-Portable.exe
-
-      - name: Determine release tag
-        id: release_tag
-        if: github.ref == 'refs/heads/main'
-        shell: pwsh
-        run: |
-          $version = (Get-Content package.json | ConvertFrom-Json).version
-          if (-not $version) {
-            throw "package.json version not found"
-          }
-          "version=$version" >> $env:GITHUB_OUTPUT
-          "tag=v$version" >> $env:GITHUB_OUTPUT
-
-      - name: Create or update GitHub release
-        if: github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.release_tag.outputs.tag }}
-          target_commitish: ${{ github.sha }}
-          generate_release_notes: true
-          files: src-tauri/target/release/tagmeister-Portable.exe
+          path: tagmeister-Portable.exe
 
   build-macos:
-    needs: build-windows
+    needs: validate
+    if: github.event_name != 'pull_request'
     runs-on: macos-latest
 
     steps:
@@ -236,22 +247,3 @@ jobs:
         with:
           name: tagmeister-macOS-dmg
           path: src-tauri/target/release/bundle/dmg/*.dmg
-
-      - name: Determine release tag
-        id: release_tag
-        if: github.ref == 'refs/heads/main'
-        run: |
-          version=$(node -p "require('./package.json').version")
-          if [ -z "$version" ]; then
-            echo "package.json version not found"
-            exit 1
-          fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "tag=v$version" >> "$GITHUB_OUTPUT"
-
-      - name: Upload dmg to GitHub release
-        if: github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.release_tag.outputs.tag }}
-          files: src-tauri/target/release/bundle/dmg/*.dmg
