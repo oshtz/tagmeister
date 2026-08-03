@@ -72,6 +72,8 @@ npm run tauri build
 
 Run `npm run tauri build` locally whenever you want to publish a new version; all releases are produced manually from a development machine.
 
+CI validates pull requests and uploads non-publishing Windows and macOS artifacts from `main`. The optional packed Windows executable requires both `ENIGMA_VIRTUAL_BOX_INSTALLER_URL` and `ENIGMA_VIRTUAL_BOX_INSTALLER_SHA256` repository variables; the standard Windows ZIP remains available when they are unset or optional packaging fails.
+
 ## Usage
 
 1. Click the folder icon to select an image directory
